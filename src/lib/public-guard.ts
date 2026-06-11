@@ -6,8 +6,8 @@
  * in AI-generated responses.
  */
 
-import { scanForPII, sanitizeText, type PIIFinding } from './pii-scanner.js';
-import { maskPII, type MaskMode } from '../pii-patterns.js';
+import { scanForPII, sanitizeText, type PIIFinding, type PIIPatternDefinition } from './pii-scanner.js';
+import { maskPII, type MaskMode, type CustomPIIPattern } from '../pii-patterns.js';
 
 export type GuardAction = 'mask' | 'redact' | 'block' | 'warn';
 export type SensitivityLevel = 'low' | 'medium' | 'high' | 'critical';
@@ -29,6 +29,12 @@ export interface PublicGuardConfig {
    * - 'partial': banking-style partial reveal → ***.456.789-**
    */
   maskMode?: MaskMode;
+  /**
+   * Custom PII patterns to merge with built-in patterns.
+   * Each institution/state/situation defines their own identifiers.
+   * These run AFTER built-in patterns — no conflicts.
+   */
+  customPatterns?: CustomPIIPattern[];
 }
 
 export interface MaskingResult {
@@ -66,7 +72,13 @@ export function maskPublicOutput(text: string, config: PublicGuardConfig = {}): 
   const piiAction = config.piiAction ?? 'mask';
   const criticalPiiAction = config.criticalPiiAction ?? 'redact';
 
-  const findings = scanForPII(text);
+  const extraPatterns: PIIPatternDefinition[] = (config.customPatterns ?? []).map(p => ({
+    category: p.id as never,
+    label: p.label,
+    pattern: p.regex,
+    suggestion: p.maskFormat,
+  }));
+  const findings = scanForPII(text, extraPatterns.length > 0 ? { extraPatterns } : undefined);
   const sensitivityLevel = computeSensitivity(findings);
 
   const actionsMap = new Map<string, MaskingAction>();

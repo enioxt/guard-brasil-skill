@@ -38,4 +38,7 @@ export { CPF_PATTERN, CNPJ_PATTERN, RG_PATTERN, CNH_PATTERN, MASP_PATTERN, REDS_
 export type { PIIPatternId, PatternConfidence, PIIPatternConfig, PIIMatch, MaskMode } from './pii-patterns.js';
 export { tokenize, restore, hasTokens } from './lib/tokenizer.js';
 export type { TokenVault, TokenizedResult } from './lib/tokenizer.js';
+export { namedTokenize, namedRestore } from './lib/tokenizer.js';
+export type { NamedTokenVault, NamedTokenizedResult } from './lib/tokenizer.js';
+export { applyNERRules, NER_RULES } from './lib/ner-rules.js';
 //# sourceMappingURL=index.d.ts.map

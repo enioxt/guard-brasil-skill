@@ -17,7 +17,9 @@ export interface PIIPatternDefinition {
 export declare const DEFAULT_PII_PATTERNS: PIIPatternDefinition[];
 export declare function scanForPII(text: string, options?: {
     patterns?: PIIPatternDefinition[];
+    extraPatterns?: PIIPatternDefinition[];
     namePattern?: RegExp;
+    useNERRules?: boolean;
 }): PIIFinding[];
 export declare function sanitizeText(text: string, findings: PIIFinding[]): string;
 export declare function getPIISummary(findings: PIIFinding[]): string;

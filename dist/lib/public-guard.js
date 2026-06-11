@@ -27,7 +27,13 @@ function computeSensitivity(findings) {
 export function maskPublicOutput(text, config = {}) {
     const piiAction = config.piiAction ?? 'mask';
     const criticalPiiAction = config.criticalPiiAction ?? 'redact';
-    const findings = scanForPII(text);
+    const extraPatterns = (config.customPatterns ?? []).map(p => ({
+        category: p.id,
+        label: p.label,
+        pattern: p.regex,
+        suggestion: p.maskFormat,
+    }));
+    const findings = scanForPII(text, extraPatterns.length > 0 ? { extraPatterns } : undefined);
     const sensitivityLevel = computeSensitivity(findings);
     const actionsMap = new Map();
     for (const finding of findings) {

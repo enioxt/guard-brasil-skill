@@ -6,7 +6,7 @@
  * in AI-generated responses.
  */
 import { type PIIFinding } from './pii-scanner.js';
-import { type MaskMode } from '../pii-patterns.js';
+import { type MaskMode, type CustomPIIPattern } from '../pii-patterns.js';
 export type GuardAction = 'mask' | 'redact' | 'block' | 'warn';
 export type SensitivityLevel = 'low' | 'medium' | 'high' | 'critical';
 export interface PublicGuardConfig {
@@ -26,6 +26,12 @@ export interface PublicGuardConfig {
      * - 'partial': banking-style partial reveal → ***.456.789-**
      */
     maskMode?: MaskMode;
+    /**
+     * Custom PII patterns to merge with built-in patterns.
+     * Each institution/state/situation defines their own identifiers.
+     * These run AFTER built-in patterns — no conflicts.
+     */
+    customPatterns?: CustomPIIPattern[];
 }
 export interface MaskingResult {
     original: string;

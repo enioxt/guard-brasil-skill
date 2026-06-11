@@ -122,3 +122,107 @@ class TokenVault_ {
     return { tokens: new Map(), createdAt: new Date().toISOString(), count: 0 };
   }
 }
+
+// ─── Named (DataVirtus-style) Tokenization ────────────────────────────────────
+
+export interface NamedTokenVault {
+  /** token (e.g. "[CPF_0001]") → original value */
+  tokens: Map<string, string>;
+  /** original value → token (reverse index for idempotency) */
+  reverse: Map<string, string>;
+  createdAt: string;
+  count: number;
+}
+
+export interface NamedTokenizedResult {
+  /** Text with PII replaced by readable numbered placeholders */
+  tokenized: string;
+  /** Vault for restoration — keep in-memory, never log */
+  vault: NamedTokenVault;
+  /** Audit log — no original values */
+  findings: Array<{ token: string; category: string; label: string }>;
+}
+
+/**
+ * Readable reversible tokenization — DataVirtus-compatible format.
+ *
+ * Replaces each unique PII value with a numbered placeholder:
+ *   "<cpf>"         → "[CPF_0001]"
+ *   "<reds>"        → "[REDS_0001]"
+ *
+ * Same value always → same token (idempotent within a vault).
+ * The vault maps tokens back to originals for restoration.
+ *
+ * Compatible with the Datavirtus anonymizer workflow:
+ *   anon → send to LLM → restore with vault (offline, no API).
+ */
+export function namedTokenize(text: string): NamedTokenizedResult {
+  const findings = scanForPII(text);
+  const tokens = new Map<string, string>();
+  const reverse = new Map<string, string>();
+  const counters: Record<string, number> = {};
+  const auditLog: NamedTokenizedResult['findings'] = [];
+
+  if (findings.length === 0) {
+    return { tokenized: text, vault: { tokens, reverse, createdAt: new Date().toISOString(), count: 0 }, findings: [] };
+  }
+
+  const sorted = [...findings].sort((a, b) => b.start - a.start);
+  let tokenized = text;
+
+  for (const f of sorted) {
+    const original = text.slice(f.start, f.end);
+    if (reverse.has(original)) {
+      const existingToken = reverse.get(original)!;
+      tokenized = tokenized.slice(0, f.start) + existingToken + tokenized.slice(f.end);
+      continue;
+    }
+    const key = categoryToKey(f.category);
+    counters[key] = (counters[key] ?? 0) + 1;
+    const token = `[${key}_${String(counters[key]).padStart(4, '0')}]`;
+    tokens.set(token, original);
+    reverse.set(original, token);
+    tokenized = tokenized.slice(0, f.start) + token + tokenized.slice(f.end);
+    auditLog.push({ token, category: f.category, label: f.label });
+  }
+
+  return {
+    tokenized,
+    vault: { tokens, reverse, createdAt: new Date().toISOString(), count: tokens.size },
+    findings: auditLog,
+  };
+}
+
+/**
+ * Restore original values from a namedTokenize vault.
+ * Replaces all [KEY_NNNN] tokens with their original values.
+ */
+export function namedRestore(text: string, vault: NamedTokenVault): string {
+  let restored = text;
+  for (const [token, original] of vault.tokens) {
+    restored = restored.replaceAll(token, original);
+  }
+  return restored;
+}
+
+const CATEGORY_KEY_MAP: Record<string, string> = {
+  cpf: 'CPF',
+  cnpj: 'CNPJ',
+  rg: 'RG',
+  cnh: 'CNH',
+  masp: 'MASP',
+  reds: 'REDS',
+  process_number: 'IPL',
+  plate: 'PLACA',
+  phone: 'TEL',
+  email: 'EMAIL',
+  cep: 'CEP',
+  health_data: 'SAUDE',
+  name: 'NOME',
+  date_of_birth: 'NASC',
+  address: 'END',
+};
+
+function categoryToKey(category: string): string {
+  return CATEGORY_KEY_MAP[category] ?? category.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}

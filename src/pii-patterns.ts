@@ -9,7 +9,7 @@
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-/** Identifier for each PII pattern category */
+/** Identifier for each built-in PII pattern category */
 export type PIIPatternId =
   | 'cpf'
   | 'cnpj'
@@ -35,6 +35,52 @@ export type PIIPatternId =
   | 'api_key_assignment'
   | 'bearer_token'
   | 'private_key';
+
+/**
+ * Custom pattern ID — any string prefixed with the institution/domain namespace.
+ * Convention: `<namespace>:<identifier>` e.g. `pcmg:bo_numero`, `tjmg:processo_estadual`.
+ * The namespace prevents collisions across institutions and makes origin traceable.
+ */
+export type CustomPIIPatternId = string;
+
+/** Union: built-in or custom. Use this when accepting any pattern ID. */
+export type AnyPIIPatternId = PIIPatternId | CustomPIIPatternId;
+
+/**
+ * Custom PII pattern — same shape as PIIPatternConfig but with open-ended id.
+ * Institutions define their own patterns without modifying Guard Brasil core.
+ *
+ * HITL training cycle:
+ *   1. Add pattern with `confidence: 'low'`
+ *   2. Run on real data (synthetic/anonymized for training)
+ *   3. Human reviews flagged matches → confirms/rejects via HITL UI
+ *   4. After N confirmations, confidence auto-upgrades to 'medium' then 'high'
+ *   5. Export/import via JSON — no code change required
+ */
+export interface CustomPIIPattern {
+  /** Namespaced ID: `<institution>:<type>` */
+  id: CustomPIIPatternId;
+  /** Human-readable label (PT-BR) */
+  label: string;
+  /** Detection regex — MUST use the `g` flag */
+  regex: RegExp;
+  /** Replacement shown in redacted output */
+  maskFormat: string;
+  /** Initial confidence — start low, elevate via HITL */
+  confidence: PatternConfidence;
+  /** Optional description for documentation / HITL UI */
+  description?: string;
+  /** Who defined this pattern */
+  author?: string;
+  /** When this pattern was created (ISO 8601) */
+  createdAt?: string;
+  /** HITL stats — updated by the training loop */
+  hitlStats?: {
+    confirmations: number;
+    rejections: number;
+    lastReviewedAt?: string;
+  };
+}
 
 /** Confidence that a regex match is actually the claimed PII type */
 export type PatternConfidence = 'high' | 'medium' | 'low';
@@ -172,10 +218,10 @@ export const PROCESSO_PATTERN: PIIPatternConfig = {
 export const PLACA_ANTIGA_PATTERN: PIIPatternConfig = {
   id: 'placa_antiga',
   label: 'Placa Veicular',
-  regex: /\b[A-Z]{3}[-\s]?\d{4}(?![-\d])/gi,
+  regex: /\b[A-Z]{3}[-\s]?\d{4}(?![-\d\/])/gi,
   maskFormat: '[PLACA REMOVIDA]',
   confidence: 'medium',
-  description: 'Placa formato antigo — AAA-0000. Lookahead (?![-\\d]) prevents FP-001: ID patterns like INV-2024-001.',
+  description: 'Placa formato antigo — AAA-0000. Lookahead (?![-\\d\\/]) prevents FP-001 (INV-2024-001) and FP-002 (IPL 1234/2024 = inquérito, not plate).',
 };
 
 /** Placa Mercosul — formato Mercosul (AAA0A00) */

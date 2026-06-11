@@ -90,10 +90,10 @@ export const PROCESSO_PATTERN = {
 export const PLACA_ANTIGA_PATTERN = {
     id: 'placa_antiga',
     label: 'Placa Veicular',
-    regex: /\b[A-Z]{3}[-\s]?\d{4}\b/gi,
+    regex: /\b[A-Z]{3}[-\s]?\d{4}(?![-\d\/])/gi,
     maskFormat: '[PLACA REMOVIDA]',
     confidence: 'medium',
-    description: 'Placa formato antigo — AAA-0000',
+    description: 'Placa formato antigo — AAA-0000. Lookahead (?![-\\d\\/]) prevents FP-001 (INV-2024-001) and FP-002 (IPL 1234/2024 = inquérito, not plate).',
 };
 /** Placa Mercosul — formato Mercosul (AAA0A00) */
 export const PLACA_MERCOSUL_PATTERN = {
@@ -215,6 +215,87 @@ export const ALL_PII_PATTERNS = [
     TITULO_ELEITOR_PATTERN,
     CEP_PATTERN,
     HEALTH_CONDITION_PATTERN,
+];
+// ─── Infrastructure Secret Patterns ──────────────────────────────────────────
+// Ported from egos-cortex/src/privacy.ts — complement Brazilian PII with
+// infrastructure credential detection. NOT included in ALL_PII_PATTERNS to
+// avoid false positives in general text. Use INFRASTRUCTURE_SECRET_PATTERNS
+// explicitly when scanning source code or config files.
+/** AWS Access Key ID — AKIA + 16 uppercase alphanumeric chars */
+export const AWS_KEY_PATTERN = {
+    id: 'aws_key',
+    label: 'AWS Access Key',
+    regex: /\bAKIA[0-9A-Z]{16}\b/g,
+    maskFormat: '[AWS_KEY REMOVIDO]',
+    confidence: 'high',
+    description: 'AWS Access Key ID — AKIA****************',
+};
+/** GitHub Token — gh[pousr]_ prefix patterns */
+export const GITHUB_TOKEN_PATTERN = {
+    id: 'github_token',
+    label: 'GitHub Token',
+    regex: /\bgh[pousr]_[A-Za-z0-9_]{36,}\b/g,
+    maskFormat: '[GITHUB_TOKEN REMOVIDO]',
+    confidence: 'high',
+    description: 'GitHub personal/oauth/app token — ghp_*, gho_*, ghu_*, ghs_*, ghr_*',
+};
+/** Stripe API Key — live or test sk_ keys */
+export const STRIPE_KEY_PATTERN = {
+    id: 'stripe_key',
+    label: 'Stripe API Key',
+    regex: /\bsk_(?:live|test)_[A-Za-z0-9]{16,}\b/g,
+    maskFormat: '[STRIPE_KEY REMOVIDO]',
+    confidence: 'high',
+    description: 'Stripe secret key — sk_live_* or sk_test_*',
+};
+/** Database Connection String — mongodb/postgres/mysql with embedded credentials */
+export const DB_CONNECTION_PATTERN = {
+    id: 'db_connection',
+    label: 'DB Connection String',
+    regex: /\b(?:mongodb|postgres|postgresql|mysql):\/\/[^:\s]+:[^@\s]+@[^\s"']+/gi,
+    maskFormat: '[DB_CONNECTION REMOVIDA]',
+    confidence: 'high',
+    description: 'Database connection string with embedded credentials',
+};
+/** API Key assignment — api_key = "..." patterns in code/config */
+export const API_KEY_ASSIGNMENT_PATTERN = {
+    id: 'api_key_assignment',
+    label: 'API Key (assignment)',
+    regex: /\b(?:api[_-]?key|apikey|api_secret|access_token)\s*[:=]\s*['"][A-Za-z0-9_\-]{20,}['"]/gi,
+    maskFormat: '[API_KEY REMOVIDA]',
+    confidence: 'medium',
+    description: 'Generic API key or secret assigned in code or config',
+};
+/** Bearer Token — Authorization header value */
+export const BEARER_TOKEN_PATTERN = {
+    id: 'bearer_token',
+    label: 'Bearer Token',
+    regex: /\bbearer\s+[A-Za-z0-9_\-.]{20,}\b/gi,
+    maskFormat: '[BEARER_TOKEN REMOVIDO]',
+    confidence: 'medium',
+    description: 'HTTP Bearer token (Authorization header)',
+};
+/** PEM Private Key header — RSA, EC, OpenSSH, PGP */
+export const PRIVATE_KEY_PATTERN = {
+    id: 'private_key',
+    label: 'Private Key (PEM)',
+    regex: /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g,
+    maskFormat: '[PRIVATE_KEY REMOVIDA]',
+    confidence: 'high',
+    description: 'PEM-encoded private key header',
+};
+/**
+ * Infrastructure secret patterns (NOT in ALL_PII_PATTERNS).
+ * Use explicitly for source code or config file scanning.
+ */
+export const INFRASTRUCTURE_SECRET_PATTERNS = [
+    AWS_KEY_PATTERN,
+    GITHUB_TOKEN_PATTERN,
+    STRIPE_KEY_PATTERN,
+    DB_CONNECTION_PATTERN,
+    API_KEY_ASSIGNMENT_PATTERN,
+    BEARER_TOKEN_PATTERN,
+    PRIVATE_KEY_PATTERN,
 ];
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 /** Clone a RegExp to reset its lastIndex (safe for repeated exec calls) */

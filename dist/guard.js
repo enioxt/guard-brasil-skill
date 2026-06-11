@@ -66,6 +66,7 @@ export class GuardBrasil {
             blockOnCriticalPII: config.blockOnCriticalPII ?? false,
             lgpdDisclosure: config.lgpdDisclosure ?? true,
             defaultConfidence: config.defaultConfidence ?? 'medium',
+            customPatterns: config.customPatterns ?? [],
         };
         this.atrian = createAtrianValidator(this.config.atrian);
     }
@@ -93,6 +94,7 @@ export class GuardBrasil {
         const maskingResult = maskPublicOutput(text, {
             criticalPiiAction: this.config.blockOnCriticalPII ? 'block' : 'redact',
             maskMode: options.maskMode,
+            customPatterns: this.config.customPatterns,
         });
         const blocked = maskingResult.masked.startsWith('[CONTEÚDO BLOQUEADO');
         // Step 3 — Apply ATRiAN filter on top of masked output

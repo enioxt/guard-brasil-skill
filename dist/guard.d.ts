@@ -5,7 +5,7 @@
  * into a single call that validates, masks, and audits any LLM output.
  */
 import { type AtrianConfig, type AtrianResult, type MaskingResult, type EvidenceChain, type AuditFields, type ConfidenceLevel } from './lib/index.js';
-import { type MaskMode } from './pii-patterns.js';
+import { type MaskMode, type CustomPIIPattern } from './pii-patterns.js';
 export interface GuardBrasilConfig {
     /** ATRiAN configuration — ethical validation */
     atrian?: AtrianConfig;
@@ -15,6 +15,27 @@ export interface GuardBrasilConfig {
     lgpdDisclosure?: boolean;
     /** Default confidence level for unattributed claims (default: 'medium') */
     defaultConfidence?: ConfidenceLevel;
+    /**
+     * Institution-specific custom PII patterns.
+     * Guard Brasil is format-agnostic — each state, court, health system, or
+     * police force defines their own identifier formats here without touching core.
+     *
+     * Example — PCMG profile:
+     *   customPatterns: PCMG_PROFILE.patterns
+     *
+     * Example — inline:
+     *   customPatterns: [{
+     *     id: 'tjmg:numero_externo',
+     *     label: 'Número Externo TJMG',
+     *     regex: /\bEXT-\d{4}-\d{6}\b/g,
+     *     maskFormat: '[NR EXTERNO REMOVIDO]',
+     *     confidence: 'medium',
+     *   }]
+     *
+     * HITL training: start with confidence 'low', validate via HITL UI,
+     * auto-promote to 'high' after N confirmations.
+     */
+    customPatterns?: CustomPIIPattern[];
 }
 export interface InspectOptions {
     /** Optional session ID for evidence chain tracing */

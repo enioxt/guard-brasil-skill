@@ -1,0 +1,1 @@
+{"version":3,"file":"pcmg-corpus.d.ts","sourceRoot":"","sources":["../../src/registry/pcmg-corpus.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,WAAW;IAC1B,EAAE,EAAE,MAAM,CAAC;IACX,SAAS,EAAE,MAAM,CAAC;IAClB,IAAI,EAAE,MAAM,CAAC;IACb,WAAW,EAAE,OAAO,CAAC;IACrB,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AAED,eAAO,MAAM,WAAW,EAAE,WAAW,EAwLpC,CAAC"}

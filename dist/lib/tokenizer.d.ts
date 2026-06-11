@@ -54,4 +54,43 @@ export declare function restore(text: string, vault: TokenVault): string;
  * Check if text contains any vault tokens (useful before calling restore).
  */
 export declare function hasTokens(text: string, vault: TokenVault): boolean;
+export interface NamedTokenVault {
+    /** token (e.g. "[CPF_0001]") → original value */
+    tokens: Map<string, string>;
+    /** original value → token (reverse index for idempotency) */
+    reverse: Map<string, string>;
+    createdAt: string;
+    count: number;
+}
+export interface NamedTokenizedResult {
+    /** Text with PII replaced by readable numbered placeholders */
+    tokenized: string;
+    /** Vault for restoration — keep in-memory, never log */
+    vault: NamedTokenVault;
+    /** Audit log — no original values */
+    findings: Array<{
+        token: string;
+        category: string;
+        label: string;
+    }>;
+}
+/**
+ * Readable reversible tokenization — DataVirtus-compatible format.
+ *
+ * Replaces each unique PII value with a numbered placeholder:
+ *   "<cpf>"         → "[CPF_0001]"
+ *   "<reds>"        → "[REDS_0001]"
+ *
+ * Same value always → same token (idempotent within a vault).
+ * The vault maps tokens back to originals for restoration.
+ *
+ * Compatible with the Datavirtus anonymizer workflow:
+ *   anon → send to LLM → restore with vault (offline, no API).
+ */
+export declare function namedTokenize(text: string): NamedTokenizedResult;
+/**
+ * Restore original values from a namedTokenize vault.
+ * Replaces all [KEY_NNNN] tokens with their original values.
+ */
+export declare function namedRestore(text: string, vault: NamedTokenVault): string;
 //# sourceMappingURL=tokenizer.d.ts.map

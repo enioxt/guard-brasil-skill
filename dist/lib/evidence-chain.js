@@ -5,6 +5,7 @@
  * ensuring every claim can be traced back to a source, tool call,
  * or human-verified fact. Core component of EGOS Guard Brasil.
  */
+import { sha256Text } from './provenance.js';
 const CONFIDENCE_RANK = {
     certain: 5,
     high: 4,
@@ -23,13 +24,7 @@ function computeAuditHash(chain) {
         createdAt: chain.createdAt,
         claims: chain.claims.map(c => ({ claim: c.claim, confidence: c.confidence })),
     });
-    // Deterministic simple hash (not cryptographic — for audit trail only)
-    let hash = 0;
-    for (let i = 0; i < payload.length; i++) {
-        hash = (hash << 5) - hash + payload.charCodeAt(i);
-        hash |= 0;
-    }
-    return `ev-${Math.abs(hash).toString(16).padStart(8, '0')}`;
+    return `ev-${sha256Text(payload)}`;
 }
 let _responseCounter = 0;
 /**

@@ -52,6 +52,49 @@ export async function incrementUsage(tenantId) {
         return;
     await sb.rpc('increment_api_usage', { p_tenant_id: tenantId });
 }
+/**
+ * PAP-002: Budget warning — send Telegram when tenant reaches 80%/100% of quota.
+ * Called fire-and-forget after incrementUsage. Deduplicates via agent_events.
+ */
+export async function checkBudgetWarning(tenant) {
+    const usage = tenant.calls_this_month + 1;
+    const cap = tenant.quota_limit;
+    if (cap <= 0)
+        return;
+    const pct = usage / cap;
+    if (pct < 0.8)
+        return;
+    const sb = getSupabase();
+    if (!sb)
+        return;
+    const threshold = pct >= 1.0 ? '100pct' : '80pct';
+    const sinceDate = new Date(Date.now() - 31 * 24 * 3600 * 1000).toISOString();
+    const { count } = await sb
+        .from('agent_events')
+        .select('id', { count: 'exact', head: true })
+        .eq('type', 'budget_' + threshold + '_warn')
+        .eq('source', 'guard_brasil:' + tenant.id)
+        .gte('created_at', sinceDate);
+    if ((count ?? 0) > 0)
+        return;
+    await sb.from('agent_events').insert({
+        type: 'budget_' + threshold + '_warn',
+        source: 'guard_brasil:' + tenant.id,
+        severity: pct >= 1.0 ? 'critical' : 'warn',
+        payload: { tenant_id: tenant.id, tenant_name: tenant.name, usage, cap, pct: Math.round(pct * 100) },
+    });
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN_AI_AGENTS;
+    const tgChat = process.env.TELEGRAM_ADMIN_CHAT_ID ?? process.env.TELEGRAM_AUTHORIZED_USER_ID ?? '171767219';
+    if (!tgToken)
+        return;
+    const pctLabel = pct >= 1.0 ? 'PAUSED (100%)' : 'WARNING (80%)';
+    const msg = '[Guard Brasil] Budget ' + pctLabel + ' — Tenant: ' + tenant.name + ' | ' + usage + '/' + cap + ' calls';
+    await fetch('https://api.telegram.org/bot' + tgToken + '/sendMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: tgChat, text: msg }),
+    }).catch(() => { });
+}
 export async function createFreeTenant(name, email) {
     const sb = getSupabase();
     if (!sb)

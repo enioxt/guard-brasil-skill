@@ -2,6 +2,7 @@ import {
   ALL_PII_PATTERNS,
   type PIIPatternConfig,
 } from '../pii-patterns.js';
+import { applyNERRules } from './ner-rules.js';
 
 export type PIICategory = 'cpf' | 'rg' | 'masp' | 'phone' | 'email' | 'reds' | 'process_number' | 'name' | 'address' | 'plate' | 'date_of_birth' | 'cnpj' | 'cnh' | 'cep' | 'health_data';
 export interface PIIFinding { category: PIICategory; label: string; matched: string; start: number; end: number; suggestion: string; }
@@ -55,9 +56,10 @@ DEFAULT_PII_PATTERNS.push(DATE_OF_BIRTH_PATTERN);
 const DEFAULT_NAME_PATTERN = /\b(?:delegad[oa]|chefe|colega|servidor|investigador|escriv[aã]o?|comissário|perito|agente|[Nn]ome(?:\s+completo)?|[Pp]aciente|[Cc]liente|[Rr]esponsável|[Rr]equerente|[Rr]equerido|[Aa]utor|[Rr]éu|[Rr]é|[Dd]etentor|[Pp]ortador|[Tt]itular|[Ii]nteressado)\s*:?\s+([A-ZÁÉÍÓÚÃÕÂÊÎÔÛ][a-záéíóúãõâêîôû]+(?:\s+(?:d[aeo]\s+)?[A-ZÁÉÍÓÚÃÕÂÊÎÔÛ][a-záéíóúãõâêîôû]+){1,4})\b/g;
 const clonePattern = (pattern: RegExp) => new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
 
-export function scanForPII(text: string, options?: { patterns?: PIIPatternDefinition[]; namePattern?: RegExp }): PIIFinding[] {
+export function scanForPII(text: string, options?: { patterns?: PIIPatternDefinition[]; extraPatterns?: PIIPatternDefinition[]; namePattern?: RegExp; useNERRules?: boolean }): PIIFinding[] {
   const findings: PIIFinding[] = [];
-  const patterns = options?.patterns ?? DEFAULT_PII_PATTERNS;
+  const base = options?.patterns ?? DEFAULT_PII_PATTERNS;
+  const patterns = options?.extraPatterns ? [...base, ...options.extraPatterns] : base;
   for (const { category, label, suggestion, pattern } of patterns) {
     const activePattern = clonePattern(pattern);
     let match: RegExpExecArray | null;
@@ -69,6 +71,7 @@ export function scanForPII(text: string, options?: { patterns?: PIIPatternDefini
     const name = nameMatch[1];
     if (name && name.length > 3) findings.push({ category: 'name', label: 'Possível nome', matched: name, start: nameMatch.index + nameMatch[0].indexOf(name), end: nameMatch.index + nameMatch[0].indexOf(name) + name.length, suggestion: '[NOME REMOVIDO]' });
   }
+  if (options?.useNERRules) findings.push(...applyNERRules(text));
   return deduplicateFindings(findings.sort((a, b) => a.start - b.start));
 }
 
@@ -84,8 +87,11 @@ export function getPIISummary(findings: PIIFinding[]): string {
 }
 
 function deduplicateFindings(findings: PIIFinding[]) {
+  // Sort: start ascending, then end descending — longer match at same position wins.
+  // This ensures custom/more-specific patterns beat shorter built-in matches at the same offset.
+  const sorted = [...findings].sort((a, b) => a.start !== b.start ? a.start - b.start : b.end - a.end);
   const result: PIIFinding[] = [];
   let lastEnd = -1;
-  for (const finding of findings) if (finding.start >= lastEnd) { result.push(finding); lastEnd = finding.end; }
+  for (const finding of sorted) if (finding.start >= lastEnd) { result.push(finding); lastEnd = finding.end; }
   return result;
 }

@@ -17,3 +17,8 @@ export type { EvidenceChain, EvidenceItem, ClaimWithEvidence, EvidenceType, Conf
 
 export { buildAuditFields, canonicalRowJson, rawRowHash, sha256Text, sourceFingerprint } from './provenance.js';
 export type { AuditFields } from './provenance.js';
+
+export { applyNERRules, NER_RULES } from './ner-rules.js';
+
+export { namedTokenize, namedRestore } from './tokenizer.js';
+export type { NamedTokenVault, NamedTokenizedResult } from './tokenizer.js';

@@ -1,4 +1,5 @@
 import { ALL_PII_PATTERNS, } from '../pii-patterns.js';
+import { applyNERRules } from './ner-rules.js';
 /**
  * Bridge from centralized PIIPatternConfig to legacy PIIPatternDefinition format.
  * Maps pii-patterns.ts IDs to the PIICategory values used by existing consumers.
@@ -43,7 +44,8 @@ const DEFAULT_NAME_PATTERN = /\b(?:delegad[oa]|chefe|colega|servidor|investigado
 const clonePattern = (pattern) => new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
 export function scanForPII(text, options) {
     const findings = [];
-    const patterns = options?.patterns ?? DEFAULT_PII_PATTERNS;
+    const base = options?.patterns ?? DEFAULT_PII_PATTERNS;
+    const patterns = options?.extraPatterns ? [...base, ...options.extraPatterns] : base;
     for (const { category, label, suggestion, pattern } of patterns) {
         const activePattern = clonePattern(pattern);
         let match;
@@ -57,6 +59,8 @@ export function scanForPII(text, options) {
         if (name && name.length > 3)
             findings.push({ category: 'name', label: 'Possível nome', matched: name, start: nameMatch.index + nameMatch[0].indexOf(name), end: nameMatch.index + nameMatch[0].indexOf(name) + name.length, suggestion: '[NOME REMOVIDO]' });
     }
+    if (options?.useNERRules)
+        findings.push(...applyNERRules(text));
     return deduplicateFindings(findings.sort((a, b) => a.start - b.start));
 }
 export function sanitizeText(text, findings) {
@@ -71,9 +75,12 @@ export function getPIISummary(findings) {
     return `Detectamos ${findings.length} dado(s) sensível(is): ${[...new Set(findings.map((finding) => finding.label))].join(', ')}.`;
 }
 function deduplicateFindings(findings) {
+    // Sort: start ascending, then end descending — longer match at same position wins.
+    // This ensures custom/more-specific patterns beat shorter built-in matches at the same offset.
+    const sorted = [...findings].sort((a, b) => a.start !== b.start ? a.start - b.start : b.end - a.end);
     const result = [];
     let lastEnd = -1;
-    for (const finding of findings)
+    for (const finding of sorted)
         if (finding.start >= lastEnd) {
             result.push(finding);
             lastEnd = finding.end;

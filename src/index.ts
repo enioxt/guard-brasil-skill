@@ -51,6 +51,14 @@ export {
 } from './pii-patterns.js';
 export type { PIIPatternId, PatternConfidence, PIIPatternConfig, PIIMatch, MaskMode } from './pii-patterns.js';
 
-// Reversible tokenized redaction (EGOS-160)
+// Reversible tokenized redaction — opaque hashes (EGOS-160)
 export { tokenize, restore, hasTokens } from './lib/tokenizer.js';
 export type { TokenVault, TokenizedResult } from './lib/tokenizer.js';
+
+// Reversible tokenized redaction — readable named placeholders (DataVirtus-compatible)
+// Usage: namedTokenize(text) → [CPF_0001], [REDS_0001] → send to LLM → namedRestore(response, vault)
+export { namedTokenize, namedRestore } from './lib/tokenizer.js';
+export type { NamedTokenVault, NamedTokenizedResult } from './lib/tokenizer.js';
+
+// NER rules A–J: structured name detection for police/legal documents (MG context)
+export { applyNERRules, NER_RULES } from './lib/ner-rules.js';

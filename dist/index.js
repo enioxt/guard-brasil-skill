@@ -31,6 +31,11 @@ export { buildAuditFields, canonicalRowJson, rawRowHash, sha256Text, sourceFinge
 // Centralized PII patterns — shared constants + detect/mask API
 export { detectPII, maskPII, getPatternById, ALL_PII_PATTERNS } from './pii-patterns.js';
 export { CPF_PATTERN, CNPJ_PATTERN, RG_PATTERN, CNH_PATTERN, MASP_PATTERN, REDS_PATTERN, PROCESSO_PATTERN, PLACA_ANTIGA_PATTERN, PLACA_MERCOSUL_PATTERN, TELEFONE_PATTERN, EMAIL_PATTERN, CEP_PATTERN, } from './pii-patterns.js';
-// Reversible tokenized redaction (EGOS-160)
+// Reversible tokenized redaction — opaque hashes (EGOS-160)
 export { tokenize, restore, hasTokens } from './lib/tokenizer.js';
+// Reversible tokenized redaction — readable named placeholders (DataVirtus-compatible)
+// Usage: namedTokenize(text) → [CPF_0001], [REDS_0001] → send to LLM → namedRestore(response, vault)
+export { namedTokenize, namedRestore } from './lib/tokenizer.js';
+// NER rules A–J: structured name detection for police/legal documents (MG context)
+export { applyNERRules, NER_RULES } from './lib/ner-rules.js';
 //# sourceMappingURL=index.js.map
