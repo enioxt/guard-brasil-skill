@@ -218,10 +218,10 @@ export const PROCESSO_PATTERN: PIIPatternConfig = {
 export const PLACA_ANTIGA_PATTERN: PIIPatternConfig = {
   id: 'placa_antiga',
   label: 'Placa Veicular',
-  regex: /\b[A-Z]{3}[-\s]?\d{4}(?![-\d\/])/gi,
+  regex: /\b(?!(?:ISO|RFC|IEC|ITU|ICS|NBR|ABNT)[-\s]?\d)[A-Z]{3}[-\s]?\d{4}(?![-\d\/])/gi,
   maskFormat: '[PLACA REMOVIDA]',
   confidence: 'medium',
-  description: 'Placa formato antigo — AAA-0000. Lookahead (?![-\\d\\/]) prevents FP-001 (INV-2024-001) and FP-002 (IPL 1234/2024 = inquérito, not plate).',
+  description: 'Placa formato antigo — AAA-0000. Lookahead (?![-\\d\\/]) prevents FP-001 (INV-2024-001) and FP-002 (IPL 1234/2024 = inquérito). Negative lookahead (?!ISO|RFC|...) prevents FP-003 (RULE-HARDEN-PLATE-FP-001): technical standards ISO-8601/RFC-3339/RFC-1918/NBR-XXXX são padrões, não placas.',
 };
 
 /** Placa Mercosul — formato Mercosul (AAA0A00) */

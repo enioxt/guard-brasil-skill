@@ -341,6 +341,16 @@ describe('GuardBrasil — Vehicle plate detection', () => {
     expect(result.output).not.toContain('BCD1E23');
     expect(result.output).toContain('[PLACA REMOVIDA]');
   });
+
+  // RULE-HARDEN-PLATE-FP-001: technical standards must NOT be flagged as plates
+  it('does NOT flag technical standards (ISO-8601, RFC-3339, RFC-1918) as plates', () => {
+    const guard = makeGuard();
+    const result = guard.inspect('Timestamps em ISO-8601, datas RFC-3339, rede RFC-1918.');
+    expect(result.output).toContain('ISO-8601');
+    expect(result.output).toContain('RFC-3339');
+    expect(result.output).toContain('RFC-1918');
+    expect(result.output).not.toContain('[PLACA REMOVIDA]');
+  });
 });
 
 // ─── Edge cases ───────────────────────────────────────────────────────────────
