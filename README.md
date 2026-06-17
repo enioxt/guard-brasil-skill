@@ -1,41 +1,69 @@
 # @egosbr/guard-brasil
 
-**Brazilian AI Safety Layer** — LGPD-compliant PII masking, ATRiAN ethical validation, and traceable evidence discipline for AI assistants operating in Brazil.
+**Camada de segurança para IA em contexto brasileiro** — mascaramento de dados pessoais (PII), validação ética e cadeia de evidências auditável antes de qualquer texto chegar ao usuário.
 
-> "We make Brazilian AI assistants safer to ship by adding LGPD-aware guardrails, masking, evidence discipline, and policy enforcement."
-
----
-
-## Why this exists
-
-AI assistants deployed in Brazilian public-sector and enterprise contexts face two distinct failure modes:
-
-1. **Privacy exposure** — CPF, MASP, REDS, RG, phone, and process numbers leak into responses, violating Lei 13.709/2018 (LGPD).
-2. **Hallucination and epistemic violations** — models make absolute claims, invent data sources, and issue false promises — especially in sensitive contexts like police, health, or legal systems.
-
-`@egosbr/guard-brasil` intercepts both at the output layer, before any text reaches the user.
+> **Status:** em uso ativo · **Licença:** MIT · parte do framework [EGOS](https://github.com/enioxt/egos)
 
 ---
 
-## What it does
+## Para que serve
 
-| Layer | Checks | Action |
+Sistemas de IA implantados no Brasil costumam falhar em dois pontos:
+
+1. **Exposição acidental de dados pessoais** — CPF, CNPJ, RG, placa, número de processo e telefone vazam nas respostas do modelo, contrariando a Lei 13.709/2018 (LGPD).
+2. **Afirmações sem evidência** — modelos fazem promessas absolutas, inventam fontes ou citam dados que não existem, especialmente em contextos sensíveis (saúde, jurídico, financeiro).
+
+`@egosbr/guard-brasil` intercepta os dois problemas **na camada de saída**, antes que o texto chegue a quem lê.
+
+**Honestidade importante:** mascarar dados pessoais **não** torna uma operação inteira conforme à LGPD. Conformidade plena envolve base legal, encarregado (DPO), avaliação de impacto e outras obrigações fora do escopo desta biblioteca. Consulte assessoria jurídica para ambientes de produção com dados sensíveis.
+
+---
+
+## O que faz
+
+| Camada | O que verifica | Ação |
 |---|---|---|
-| **ATRiAN** | Absolute claims, fabricated data, false promises, blocked entities | Score (0–100) + flag |
-| **PII Scanner BR** | CPF, RG, MASP, REDS, processo, placa, phone, email, nome | Mask or block |
-| **Public Guard** | LGPD compliance, sensitivity classification | Redact + disclosure |
-| **Evidence Chain** | Claim traceability, audit hash | Build + format |
+| **PII Scanner BR** | Dados pessoais brasileiros (tabela abaixo) | Mascarar ou bloquear |
+| **Validação ética** | Afirmações absolutas, dados fabricados, promessas falsas, entidades bloqueadas | Pontuar (0–100) + sinalizar |
+| **Public Guard** | Classificação de sensibilidade + aviso de divulgação LGPD | Redigir + nota de rodapé |
+| **Cadeia de evidências** | Rastreabilidade de afirmações + hash de auditoria | Construir bloco de evidências |
 
 ---
 
-## Install
+## Dados pessoais detectados
+
+| Categoria | Exemplo | Substituição |
+|---|---|---|
+| CPF | `123.456.789-09` | `[CPF REMOVIDO]` |
+| CNPJ | `00.000.000/0001-00` | `[CNPJ REMOVIDO]` |
+| RG | `RG: 12.345.678-9` | `[RG REMOVIDO]` |
+| Processo | `0001234-56.2024.1.02.0001` | `[PROCESSO REMOVIDO]` |
+| Placa | `ABC-1D23` | `[PLACA REMOVIDA]` |
+| Telefone | `(31) 99999-0000` | `[TELEFONE REMOVIDO]` |
+| E-mail | `contato@empresa.com.br` | `[EMAIL REMOVIDO]` |
+| Nome (contextual) | `Maria Souza` | `[NOME REMOVIDO]` |
+| Data de nasc. | `nascimento: 15/03/1985` | `[DATA REMOVIDA]` |
+
+A detecção inclui validação de dígitos verificadores onde aplicável (CPF, CNPJ), reduzindo falsos positivos em relação a regex simples.
+
+---
+
+## Stack
+
+- **Runtime:** Bun / Node.js (ESM)
+- **Linguagem:** TypeScript (strict)
+- **Empacotamento:** `dist/index.js` + tipos `dist/index.d.ts`
+
+---
+
+## Instalação
 
 ```bash
-# From monorepo (workspace)
-bun add @egosbr/guard-brasil
-
-# From npm
+# npm
 npm install @egosbr/guard-brasil
+
+# Bun
+bun add @egosbr/guard-brasil
 ```
 
 ---
@@ -47,34 +75,33 @@ import { GuardBrasil } from '@egosbr/guard-brasil';
 
 const guard = GuardBrasil.create();
 
-const result = guard.inspect(llmResponse);
+const result = guard.inspect(respostaDoLLM);
 
 if (!result.safe) {
-  // Use result.output — already masked/cleaned
-  console.log(result.output);
-  console.log(result.lgpdDisclosure); // LGPD footer
-  console.log(result.summary);        // human-readable summary
+  console.log(result.output);          // texto já mascarado/limpo
+  console.log(result.lgpdDisclosure);  // nota de rodapé LGPD
+  console.log(result.summary);         // resumo legível das ocorrências
 }
 ```
 
 ---
 
-## Configuration
+## Configuração
 
 ```ts
 const guard = GuardBrasil.create({
-  // Block output entirely when critical PII found (CPF, MASP, REDS, RG)
-  blockOnCriticalPII: false,   // default: false (masks instead)
+  // Bloquear a saída inteira quando encontrar dado crítico (CPF, RG)
+  blockOnCriticalPII: false,   // padrão: false (mascara em vez de bloquear)
 
-  // Append LGPD disclosure note to masked outputs
-  lgpdDisclosure: true,        // default: true
+  // Adicionar nota LGPD ao final de saídas mascaradas
+  lgpdDisclosure: true,        // padrão: true
 
-  // ATRiAN configuration
+  // Validação ética
   atrian: {
-    blockedEntities: ['MÓDULO_SECRETO'],   // exact string matches → blocked
-    knownAcronyms: ['LGPD', 'SINESP'],    // suppress false positive acronym warnings
-    onViolation: (result, text) => {       // callback on any violation
-      logger.warn('ATRiAN violation', result);
+    blockedEntities: ['TERMO_BLOQUEADO'],   // strings exatas → bloqueio imediato
+    knownAcronyms: ['LGPD', 'SINESP'],     // suprimir falsos positivos de siglas
+    onViolation: (result, text) => {
+      logger.warn('Violação ética', result);
     },
   },
 });
@@ -82,86 +109,61 @@ const guard = GuardBrasil.create({
 
 ---
 
-## Evidence chain
+## Cadeia de evidências
 
-Attach traceable claims to your response for audit compliance:
+Anexe afirmações rastreáveis para auditoria:
 
 ```ts
-const result = guard.inspect(response, {
-  sessionId: 'user-session-42',
+const result = guard.inspect(resposta, {
+  sessionId: 'sessao-42',
   claims: [
     {
-      claim: 'Registro encontrado no sistema BOPC',
-      source: 'bopc-api-v2',
-      excerpt: 'Evento #2024/0098765 — status: encerrado',
+      claim: 'Registro encontrado no sistema',
+      source: 'api-interna-v2',
+      excerpt: 'Item #2024-0098765 — status: encerrado',
       confidence: 'high',
     },
   ],
 });
 
-// Returns a sealed evidence chain with audit hash
-console.log(result.evidenceBlock);
-// [Evidências — resp-1234567890-1]
-// • Registro encontrado no sistema BOPC (confiança: high)
-//   ↳ [document] bopc-api-v2: "Evento #2024/0098765 — status: encerrado..."
-// Audit hash: ev-3f7a1b2c
+console.log(result.evidenceBlock); // bloco de evidências com hash de auditoria
 ```
 
 ---
 
-## PII categories detected
+## Categorias de violação ética
 
-| Category | Example | Replacement |
+| Categoria | Nível | Exemplo |
 |---|---|---|
-| CPF | `123.456.789-09` | `[CPF REMOVIDO]` |
-| RG | `RG: 12.345.678-9` | `[RG REMOVIDO]` |
-| MASP | `MASP: 1234567` | `[MASP REMOVIDO]` |
-| REDS | `REDS 2024/0098765` | `[REDS REMOVIDO]` |
-| Processo | `0001234-56.2024.1.02.0001` | `[PROCESSO REMOVIDO]` |
-| Placa | `ABC-1D23` | `[PLACA REMOVIDA]` |
-| Telefone | `(31) 99999-0000` | `[TELEFONE REMOVIDO]` |
-| Email | `agente@pc.mg.gov.br` | `[EMAIL REMOVIDO]` |
-| Nome | `delegado João Alves` | `[NOME REMOVIDO]` |
-| Data nasc. | `nascimento: 15/03/1985` | `[DATA REMOVIDA]` |
+| `absolute_claim` | aviso | `"com certeza"`, `"sem dúvida"`, `"sempre"` |
+| `fabricated_data` | erro | citar fonte/dado que não existe |
+| `false_promise` | erro | `"vamos resolver"`, `"isso será encaminhado"` |
+| `blocked_entity` | crítico | qualquer string listada em `blockedEntities` |
+| `invented_acronym` | aviso | siglas em maiúsculas não reconhecidas |
 
 ---
 
-## ATRiAN violation categories
-
-| Category | Level | Example |
-|---|---|---|
-| `absolute_claim` | warning | `"com certeza"`, `"sem dúvida"`, `"sempre"` |
-| `fabricated_data` | error | `"segundo dados do Ministério da Justiça"` |
-| `false_promise` | error | `"vamos resolver"`, `"isso será encaminhado"` |
-| `blocked_entity` | critical | any string in `blockedEntities` config |
-| `invented_acronym` | warning | unknown all-caps abbreviations |
-
----
-
-## Run the demo
+## Testes e demo
 
 ```bash
-cd packages/guard-brasil
-bun run src/demo.ts
+bun test src/guard.test.ts   # 15 pass, 0 fail
+bun run src/demo.ts          # demo interativa
 ```
 
 ---
 
-## Tests
+## Limites e honestidade
 
-```bash
-bun test packages/guard-brasil/src/guard.test.ts
-# 15 pass, 0 fail
-```
-
----
-
-## Legal
-
-LGPD compliance disclaimer: This library assists in masking personal data but does not replace legal counsel or a full LGPD compliance program. Always consult a Data Protection Officer for production deployments handling sensitive Brazilian personal data.
+- Opera **na camada de saída** — não verifica o que entra no modelo nem controla o comportamento dele.
+- A detecção de nomes próprios é contextual e pode gerar falsos positivos ou negativos.
+- Conformidade com a LGPD envolve dimensões legais, organizacionais e técnicas que vão além do mascaramento automatizado.
 
 ---
 
-## License
+## English summary
 
-MIT — part of the [EGOS](https://github.com/enioxt/egos) framework.
+`@egosbr/guard-brasil` is a TypeScript library that adds a Brazilian-context safety layer to LLM outputs. It masks Brazilian PII (CPF, CNPJ, RG, judicial process numbers, vehicle plates, etc.) with check-digit validation, scores outputs for ethical violations, and builds tamper-evident evidence chains for audit. Install via npm or Bun. The Portuguese sections above are canonical.
+
+---
+
+*Atualizado em 17 de junho de 2026 · MIT License · [egos.ia.br](https://egos.ia.br)*
