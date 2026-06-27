@@ -8,7 +8,16 @@
 | Camada | O que é | Distribuição | Estado |
 |---|---|---|---|
 | **C1 — Motor regex BR** | `engine.js`: 15 tipos PII-BR + validação de dígito + tokenização reversível | **HTML único offline** (`dist/`), zero-dep | ✅ REAL + 44 testes |
-| **C2 — NER de nomes** | GLiNER (Apache-2.0) via ONNX/transformers.js — fecha o gap de NOMES/ENDEREÇO | pasta com modelo OU "modo pro" | 🟡 CONCEPT — modelo baixado+válido (154MB); integração pendente |
+| **C2 — NER de nomes** | GLiNER (Apache-2.0) via ONNX/transformers.js — fecha o gap de NOMES/ENDEREÇO | pasta com modelo OU "modo pro" | 🟢 PROVADO LIVE no navegador — falta wiring no tool |
+
+### C2 — prova live (jun/2026)
+- Modelo `model_quantized.onnx` (349MB, Apache-2.0) carrega em onnxruntime-node (1.4s) e no **navegador** (Chromium, ~12s).
+- Integração browser PROVADA: import-map resolve `gliner` + `onnxruntime-web` + `@xenova/transformers`; tokenizer do HF; wasm.
+- **Detecção PT-BR (threshold 0.3, labels person/full name/address):**
+  - "João da Silva Pereira" (person 0.33), "Rua das Flores, 123, Belo Horizonte" (location 0.38) — perdeu "Maria Santos".
+  - "Ana Carolina de Souza" (0.45), "Dr. Carlos Eduardo Mendes Filho" (0.40) — ambos OK.
+- Honesto: scores 0.3–0.45, com misses/falsos ocasionais → threshold tunável + revisão humana de nomes (já no GUIA).
+- **Pendente p/ produção:** wasm 100% local (no teste veio de CDN), modelo embutido/local (offline real), wiring opcional no HTML (modo-pro), decisão de formato de distribuição. Ambiente de prova: `gliner-probe/` (gitignored).
 
 Princípio: **C1 é determinística, rápida, à prova de falhas** (o que todo policial recebe). **C2 é opcional/avançada** (nome exige modelo, ~280MB — não cabe inline). Híbrido: C1 (regex) + C2 (nomes) → mesma `tokenize()` reversível.
 
