@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guia — Anonimizador Offline Guard Brasil</title>
+<style>
+  :root{--bg:#07090d;--panel:#0e1218;--panel2:#131922;--line:#1e2630;--cy:#38bdf8;--cy-dim:#0c4a6e;
+    --txt:#e6edf3;--mut:#8b98a8;--ok:#3fb950;--warn:#d29922;--danger:#f85149;
+    --mono:'Cascadia Code','JetBrains Mono',Consolas,monospace;--sans:'Segoe UI',system-ui,sans-serif;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.65;font-size:16px}
+  .wrap{max-width:860px;margin:0 auto;padding:0 22px 80px}
+  header{padding:46px 22px 30px;text-align:center;border-bottom:1px solid var(--line);margin-bottom:40px;
+    background:radial-gradient(ellipse at top,#0c1a26 0%,var(--bg) 70%)}
+  header h1{font-size:30px;margin:0 0 8px} header h1 b{color:var(--cy)}
+  header p{color:var(--mut);margin:0;font-size:17px}
+  h2{font-size:22px;margin:46px 0 14px;color:var(--cy);border-left:3px solid var(--cy);padding-left:12px}
+  h3{font-size:17px;margin:26px 0 8px;color:var(--txt)}
+  p{margin:12px 0} code{background:var(--panel2);padding:2px 7px;border-radius:5px;font-family:var(--mono);font-size:14px;color:var(--cy)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin:18px 0}
+  .danger{background:#1c0d0d;border:1px solid #5a1f1f;border-radius:12px;padding:18px 22px;margin:22px 0}
+  .danger h3{color:var(--danger);margin-top:0}
+  .ok{background:#0d1c12;border:1px solid #1f5a30;border-radius:12px;padding:18px 22px;margin:22px 0}
+  .ok h3{color:var(--ok);margin-top:0}
+  .warn{background:#1a160a;border:1px solid #3a2f0a;border-radius:12px;padding:16px 20px;margin:20px 0;color:#e8d9a8}
+  .flow{display:flex;flex-direction:column;gap:0;margin:24px 0}
+  .step{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-bottom:1px dashed var(--line)}
+  .step:last-child{border-bottom:none}
+  .num{flex:0 0 36px;height:36px;border-radius:50%;background:var(--cy);color:#04121c;font-weight:700;
+    display:flex;align-items:center;justify-content:center;font-size:16px}
+  .step b{color:var(--cy)} .step .sub{color:var(--mut);font-size:14px;margin-top:3px}
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)} th{color:var(--mut);font-weight:600}
+  td code{font-size:13px}
+  .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:5px;background:var(--cy-dim);color:var(--cy);margin-left:6px}
+  .mono-ex{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px;font-family:var(--mono);
+    font-size:13px;white-space:pre-wrap;margin:12px 0;color:#cdd9e5}
+  .arrow{color:var(--cy);font-weight:700}
+  ul li{margin:6px 0} a{color:var(--cy)}
+  footer{text-align:center;color:var(--mut);font-size:13px;margin-top:60px;padding-top:24px;border-top:1px solid var(--line)}
+  .badge{display:inline-block;font-size:13px;padding:5px 12px;border-radius:20px;background:#0d2818;color:var(--ok);border:1px solid var(--ok);margin:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1><b>Guard Brasil</b> · Anonimizador Offline</h1>
+  <p>Como proteger dados pessoais antes de usar IA — sem o dado sair do seu computador</p>
+  <div style="margin-top:16px">
+    <span class="badge">🔒 100% offline</span>
+    <span class="badge">🪟 roda no Windows</span>
+    <span class="badge">📄 .txt · .docx · .pdf</span>
+    <span class="badge">↩️ reversível</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <h2>O problema (por que isso importa)</h2>
+  <p>Quando você cola um depoimento, relatório ou processo numa IA pública (ChatGPT, Claude, Gemini),
+  <b>aquele texto vai para um servidor de terceiros</b>. Se houver CPF, RG, nome de vítima ou número de
+  inquérito ali, você acabou de enviar dado pessoal — possivelmente sigiloso — para fora.</p>
+
+  <div class="card">
+    <p style="margin:0"><b>Em junho de 2026, isso deixou de ser teoria:</b></p>
+    <ul style="margin:10px 0 0">
+      <li>Análises de mercado apontam que <b>~11% do conteúdo que funcionários colam em IA contém informação confidencial</b> (Cyberhaven, 1,6 mi de trabalhadores).</li>
+      <li>O caso <b>Samsung</b> (engenheiros vazaram código-fonte e atas para o ChatGPT) virou o exemplo-padrão de "não cole dado sensível".</li>
+      <li>No Brasil, o <b>CNJ (Resolução 615/2025)</b> passou a <b>exigir anonimização ou pseudonimização na origem</b> antes de compartilhar dados do Judiciário, por <i>privacy by design</i>.</li>
+      <li>O <b>Ministério da Justiça (Portaria 961/2025)</b> regulou o uso de IA em investigações, sob princípios de legalidade, necessidade e finalidade.</li>
+      <li>A própria <b>OpenAI lançou (abr/2026) o "Privacy Filter"</b>, um modelo que roda <i>na sua máquina</i> para remover dados pessoais antes de enviar à nuvem — sinal de que a indústria inteira reconheceu o risco.</li>
+    </ul>
+  </div>
+
+  <h2>A regra de ouro (e o erro do OCR)</h2>
+  <div class="danger">
+    <h3>⚠️ NUNCA suba o arquivo original para a IA</h3>
+    <p style="margin-bottom:6px">Se você enviar o <b>PDF/DOCX inteiro</b> para o ChatGPT, ele <b>lê tudo</b> — inclusive
+    o que você queria proteger. Anonimizar não adianta nada se o arquivo original também for enviado.</p>
+    <p style="margin:0"><b>O fluxo correto:</b> abra o arquivo <span class="arrow">→</span> extraia o texto aqui
+    <span class="arrow">→</span> anonimize <span class="arrow">→</span> copie e cole <b>só o texto anonimizado</b> na IA.
+    O arquivo original <b>fica no seu computador</b>.</p>
+  </div>
+
+  <h2>Como funciona — o fluxo</h2>
+  <div class="flow">
+    <div class="step"><div class="num">1</div><div><b>Anonimizar</b> — cole o texto ou solte um arquivo (.txt, .docx, .pdf).
+      <div class="sub">A ferramenta extrai o texto e troca cada dado pessoal por um código reversível.</div></div></div>
+    <div class="step"><div class="num">2</div><div><b>Usar na IA</b> — copie o texto com os códigos e cole no ChatGPT/Claude.
+      <div class="sub">A IA trabalha normalmente; ela só vê <code>[CPF_0001]</code>, nunca o CPF real.</div></div></div>
+    <div class="step"><div class="num">3</div><div><b>Guardar o mapa</b> — baixe o arquivo <code>mapa-anonimizacao.json</code>.
+      <div class="sub">Ele contém os dados reais e <b>fica só no seu computador</b>. Nunca envie o mapa a ninguém.</div></div></div>
+    <div class="step"><div class="num">4</div><div><b>Restaurar</b> — na aba "Restaurar", cole a resposta da IA + carregue o mapa.
+      <div class="sub">Os códigos voltam a ser os dados reais, localmente. A análise da IA fica útil de novo.</div></div></div>
+  </div>
+
+  <h3>Exemplo concreto</h3>
+  <div class="mono-ex">Original:    Vítima João da Silva, CPF 529.982.247-25, placa ABC1D23.
+
+↓ anonimizar (fica seguro para a IA)
+
+Para a IA:   Vítima [NOME?] , CPF [CPF_0001], placa [PLACA_0001].
+             (você cola isto no ChatGPT)
+
+↓ a IA responde usando os códigos
+
+Resposta:    "O suspeito [CPF_0001] é dono da [PLACA_0001]."
+
+↓ restaurar (com o mapa, no seu PC)
+
+Final:       "O suspeito 529.982.247-25 é dono da ABC1D23."</div>
+  <p style="color:var(--mut);font-size:14px">Obs.: nomes próprios (João da Silva) ainda dependem de revisão humana — veja "Limites" abaixo.</p>
+
+  <h2>O que a ferramenta detecta</h2>
+  <table>
+    <tr><th>Tipo</th><th>Vira</th><th>Observação</th></tr>
+    <tr><td>CPF</td><td><code>[CPF_0001]</code></td><td>com validação de dígito (rejeita número falso)</td></tr>
+    <tr><td>CNPJ</td><td><code>[CNPJ_0001]</code></td><td>com validação de dígito</td></tr>
+    <tr><td>RG</td><td><code>[RG_0001]</code></td><td>formatos comuns</td></tr>
+    <tr><td>MASP <span class="tag">MG</span></td><td><code>[MASP_0001]</code></td><td>matrícula de servidor</td></tr>
+    <tr><td>REDS <span class="tag">MG</span></td><td><code>[REDS_0001]</code></td><td>registro de evento de defesa social</td></tr>
+    <tr><td>Processo (CNJ)</td><td><code>[IPL_0001]</code></td><td>numeração unificada</td></tr>
+    <tr><td>Placa</td><td><code>[PLACA_0001]</code></td><td>antiga e Mercosul</td></tr>
+    <tr><td>Telefone</td><td><code>[TEL_0001]</code></td><td>—</td></tr>
+    <tr><td>E-mail</td><td><code>[EMAIL_0001]</code></td><td>—</td></tr>
+    <tr><td>CEP</td><td><code>[CEP_0001]</code></td><td>—</td></tr>
+  </table>
+
+  <h2>Limites honestos (leia antes de confiar)</h2>
+  <div class="warn">
+    <ul style="margin:0">
+      <li><b>Nomes de pessoas</b> não são detectados por padrão (exigem um modelo de IA local, não só regra fixa). Revise o texto antes de enviar.</li>
+      <li><b>PDF escaneado</b> (imagem, sem texto) não tem o que extrair — precisaria de OCR. Não está no escopo desta versão.</li>
+      <li><b>Não há registro de auditoria</b> persistente ainda. Para uso oficial, a LGPD (Art. 46) e o CNJ pedem log de "quem fez o quê, quando".</li>
+      <li><b>Esta ferramenta resolve a parte técnica.</b> Não substitui base legal, autorização judicial ou dever de sigilo para acessar dado sensível.</li>
+    </ul>
+  </div>
+
+  <div class="ok">
+    <h3>✓ O que ela garante</h3>
+    <ul style="margin:0">
+      <li>Processamento <b>100% local</b> — nenhum dado sai do computador (abre via arquivo, sem internet).</li>
+      <li>Funciona em <b>Windows</b> sem instalar nada: é um único arquivo <code>.html</code> que abre no Edge/Chrome.</li>
+      <li>Anonimização <b>reversível</b>: você recupera os dados reais quando precisar.</li>
+      <li>Código <b>auditável</b> e aberto — qualquer técnico pode verificar que nada é enviado para fora.</li>
+    </ul>
+  </div>
+
+  <h2>Como usar no dia a dia</h2>
+  <ol>
+    <li>Receba o arquivo <code>anonimizador-offline.html</code> (por e-mail ou pendrive).</li>
+    <li>Dê dois cliques — abre no navegador. Não precisa de internet nem de permissão de administrador.</li>
+    <li>Siga as 4 etapas do fluxo acima.</li>
+    <li>Para sigilo: guarde os arquivos <code>mapa-*.json</code> em pasta protegida e apague quando não precisar mais.</li>
+  </ol>
+
+  <footer>
+    Guard Brasil · Anonimizador Offline — material de orientação.<br>
+    Base legal: minimização de dados (LGPD, Lei 13.709/2018); CNJ Res. 615/2025; MJSP Portaria 961/2025.<br>
+    Pesquisa de contexto: junho/2026.
+  </footer>
+
+</div>
+</body>
+</html>
