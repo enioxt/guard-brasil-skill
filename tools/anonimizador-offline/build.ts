@@ -106,5 +106,6 @@ if (existsSync(bundlePath)) {
   writeFileSync(proPath, proOut, 'utf8');
   console.log(`✓ pro   ${proPath} — ${(proOut.length / 1024 / 1024).toFixed(2)} MB (C1+C2 nomes; modelo via pasta local)`);
 } else {
-  console.log(`↳ pro pulado: vendor/gliner-bundle.mjs ausente (build base ok)`);
+  console.log(`↳ pro pulado: vendor/gliner-bundle.mjs ausente (build base ok).`);
+  console.log(`  Para gerar o -pro: cd c2-bundle && bun install && bun build.ts`);
 }

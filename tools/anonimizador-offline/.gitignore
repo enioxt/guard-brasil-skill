@@ -1,7 +1,8 @@
 # artefato gerado (2.6MB) — regenerável via build.ts
 dist/
-# libs vendorizadas (baixadas pelo build/fetch) — não poluir git
-vendor/*.min.js
+# libs vendorizadas (baixadas/geradas) — regeneráveis, não poluir git
+# .min.js via build.ts fetch; gliner-bundle.mjs via c2-bundle/build.ts
+vendor/
 
 # probe local do GLiNER (node_modules + modelo 120MB)
 gliner-probe/

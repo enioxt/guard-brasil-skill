@@ -1,0 +1,9 @@
+{
+  "name": "anonimizador-c2-bundle",
+  "private": true,
+  "type": "module",
+  "description": "Receita reprodutível do bundle GLiNER (C2 nomes) p/ a build -pro. Roda: bun install && bun build.ts → ../vendor/gliner-bundle.mjs",
+  "dependencies": {
+    "gliner": "0.0.19"
+  }
+}
