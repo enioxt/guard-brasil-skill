@@ -80,16 +80,31 @@ const bootstrap = `
 const engineSrc = readFileSync(join(HERE, 'engine.js'), 'utf8').replace(/^export /gm, '');
 
 const template = readFileSync(join(HERE, 'template.html'), 'utf8');
-for (const marker of ['/*__VENDOR_BOOTSTRAP__*/', '/*__ENGINE__*/']) {
+for (const marker of ['/*__VENDOR_BOOTSTRAP__*/', '/*__ENGINE__*/', '/*__GLINER_BUNDLE__*/']) {
   if (!template.includes(marker)) throw new Error(`marcador ${marker} não encontrado no template.html`);
 }
-const out = template
+
+const base = template
   .replace('/*__VENDOR_BOOTSTRAP__*/', bootstrap)
   .replace('/*__ENGINE__*/', engineSrc);
 
 mkdirSync(join(HERE, 'dist'), { recursive: true });
-const outPath = join(HERE, 'dist', 'anonimizador-offline.html');
-writeFileSync(outPath, out, 'utf8');
 
-const mb = (out.length / 1024 / 1024).toFixed(2);
-console.log(`✓ gerado ${outPath} — ${mb} MB (arquivo único, offline)`);
+// Build BASE (leve, só C1 regex). Marcador do bundle fica vazio → modo nomes oculto.
+const baseOut = base.replace('/*__GLINER_BUNDLE__*/', '');
+const basePath = join(HERE, 'dist', 'anonimizador-offline.html');
+writeFileSync(basePath, baseOut, 'utf8');
+console.log(`✓ base  ${basePath} — ${(baseOut.length / 1024 / 1024).toFixed(2)} MB (C1 regex, offline)`);
+
+// Build PRO (C1 + C2 nomes via GLiNER inline). Requer vendor/gliner-bundle.mjs
+// (gerar com: bun gliner-probe/bundle-spike/build-bundle.ts && cp out.mjs vendor/gliner-bundle.mjs).
+const bundlePath = join(VENDOR, 'gliner-bundle.mjs');
+if (existsSync(bundlePath)) {
+  const bundle = readFileSync(bundlePath, 'utf8');
+  const proOut = base.replace('/*__GLINER_BUNDLE__*/', () => bundle);
+  const proPath = join(HERE, 'dist', 'anonimizador-offline-pro.html');
+  writeFileSync(proPath, proOut, 'utf8');
+  console.log(`✓ pro   ${proPath} — ${(proOut.length / 1024 / 1024).toFixed(2)} MB (C1+C2 nomes; modelo via pasta local)`);
+} else {
+  console.log(`↳ pro pulado: vendor/gliner-bundle.mjs ausente (build base ok)`);
+}

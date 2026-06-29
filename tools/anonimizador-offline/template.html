@@ -54,6 +54,9 @@
   .how{font-size:13px;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:20px}
   .how ol{margin:8px 0 0;padding-left:20px}
   .how li{margin-bottom:4px}
+  details.pro{margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel2)}
+  details.pro summary{cursor:pointer;font-size:13px;color:var(--cy);font-weight:500}
+  details.pro[open] summary{margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -96,6 +99,24 @@
           <button id="btn-anon">Anonimizar</button>
           <button class="ghost" id="btn-clear">Limpar</button>
         </div>
+        <!-- ── MODO AVANÇADO: NOMES (C2 / GLiNER, opcional) ─────────── -->
+        <details class="pro" id="pro-names" hidden>
+          <summary>🔬 Modo avançado: detectar <b>nomes de pessoas e endereços</b> (opcional)</summary>
+          <div style="font-size:12px;color:var(--mut);margin:10px 0">
+            Os padrões automáticos (CPF, RG, telefone…) não pegam <b>nomes próprios</b>. Este modo usa um
+            modelo de IA que roda <b>100% no seu computador</b> (nada vai à internet). Baixe a pasta do modelo
+            uma vez (~360&nbsp;MB) e aponte-a abaixo. Nomes são revisáveis — confira antes de usar.
+          </div>
+          <div class="drop" id="drop-model">
+            📁 Escolha a <b>pasta do modelo</b> (gliner_multi_pii-v1 + onnxruntime)
+            <input type="file" id="file-model" webkitdirectory directory hidden>
+          </div>
+          <div class="filemeta" id="modelmeta"></div>
+          <label style="font-size:13px;display:flex;align-items:center;gap:8px;margin-top:8px;opacity:.5" id="lbl-usenames">
+            <input type="checkbox" id="chk-names" disabled> incluir nomes/endereços na anonimização
+          </label>
+          <div class="err" id="model-err"></div>
+        </details>
       </div>
       <div class="card">
         <h2>Saída — seguro para a IA</h2>
@@ -150,6 +171,9 @@
 
 <!-- motor PII (engine.js) é injetado aqui pelo build, como globais -->
 <script>/*__ENGINE__*/</script>
+
+<!-- bundle GLiNER (C2/nomes) — injetado SÓ na build -pro; vazio na build base -->
+<script type="module">/*__GLINER_BUNDLE__*/</script>
 
 <script>
 /* ===================================================================
@@ -215,13 +239,87 @@ async function loadFile(file){
   }
 }
 
+/* ===================================================================
+   MODO AVANÇADO — detecção de NOMES via GLiNER (C2), 100% local.
+   Ativa só na build -pro (quando window.__glinerBundle existe).
+   Fluxo: usuário aponta a pasta do modelo → arquivos lidos p/ memória →
+   customCache (tokenizer) + Uint8Array (modelo) + blob URLs (wasm) →
+   Gliner → spans com offsets → engine.tokenize({extraMatches}).
+   =================================================================== */
+let nameModel=null; // Gliner pronto, ou null
+const NAME_LABELS=['person','full name','organization','address','location'];
+const NAME_KEY={person:'NOME','full name':'NOME',organization:'ORG',address:'ENDERECO',location:'LOCAL'};
+const NAME_THRESHOLD=0.3;
+
+// O bundle GLiNER é um <script type="module"> (deferido) → roda DEPOIS deste
+// script clássico. Espera ele aparecer (inline, fica pronto em ~ms) antes de ativar.
+(function waitBundle(tries){
+  if(window.__glinerBundle){
+    $('pro-names').hidden=false;
+    const dropModel=$('drop-model'),fileModel=$('file-model');
+    dropModel.onclick=()=>fileModel.click();
+    fileModel.onchange=()=>{ if(fileModel.files&&fileModel.files.length) loadNameModel(fileModel.files); };
+    return;
+  }
+  if(tries>0) setTimeout(()=>waitBundle(tries-1),30); // build base: bundle nunca chega → seção fica oculta
+})(40);
+
+async function loadNameModel(files){
+  $('model-err').textContent='';
+  $('modelmeta').textContent='⏳ carregando modelo (local, pode levar alguns segundos)…';
+  try{
+    // indexa arquivos por basename (a pasta pode ter subpastas)
+    const byName={};
+    for(const f of files){ byName[f.name.split('/').pop()]=f; }
+    const need=['tokenizer.json','tokenizer_config.json','model_quantized.onnx','ort-wasm-simd-threaded.wasm','ort-wasm-simd-threaded.mjs'];
+    // fallback de nomes alternativos do modelo onnx
+    const onnxFile=byName['model_quantized.onnx']||byName['model.onnx'];
+    const miss=need.filter(n=>n!=='model_quantized.onnx'&&!byName[n]);
+    if(!onnxFile) miss.push('model_quantized.onnx (ou model.onnx)');
+    if(miss.length) throw new Error('faltam na pasta: '+miss.join(', '));
+    const { Gliner, env }=window.__glinerBundle;
+    const tokJson=await byName['tokenizer.json'].text();
+    const tokCfg =await byName['tokenizer_config.json'].text();
+    const mem={'tokenizer.json':tokJson,'tokenizer_config.json':tokCfg};
+    env.useCustomCache=true; env.allowLocalModels=true; env.allowRemoteModels=false;
+    env.customCache={ async match(req){ const u=typeof req==='string'?req:req.url; const b=u.split('/').pop().split('?')[0]; return mem[b]!=null?new Response(mem[b]):undefined; }, async put(){} };
+    const modelBytes=new Uint8Array(await onnxFile.arrayBuffer());
+    const wasmBlob=URL.createObjectURL(new Blob([await byName['ort-wasm-simd-threaded.wasm'].arrayBuffer()],{type:'application/wasm'}));
+    const mjsBlob =URL.createObjectURL(new Blob([await byName['ort-wasm-simd-threaded.mjs'].arrayBuffer()],{type:'text/javascript'}));
+    const g=new Gliner({ tokenizerPath:'onnx-community/gliner_multi_pii-v1',
+      transformersSettings:{ allowLocalModels:true, useBrowserCache:false },
+      onnxSettings:{ modelPath:modelBytes, executionProvider:'wasm', wasmPaths:{ mjs:mjsBlob, wasm:wasmBlob } }, maxWidth:12 });
+    await g.initialize();
+    nameModel=g;
+    $('modelmeta').textContent='✓ modelo de nomes pronto — roda 100% local';
+    $('chk-names').disabled=false; $('chk-names').checked=true; $('lbl-usenames').style.opacity='1';
+  }catch(e){
+    nameModel=null; $('modelmeta').textContent='';
+    $('model-err').textContent='Não consegui carregar o modelo: '+e.message;
+  }
+}
+
+// roda GLiNER e converte para extraMatches do engine
+async function detectNames(text){
+  if(!nameModel) return [];
+  const r=await nameModel.inference({texts:[text],entities:NAME_LABELS,threshold:NAME_THRESHOLD});
+  return (r?.[0]||[]).map(e=>({start:e.start,end:e.end,label:e.label,key:NAME_KEY[e.label]||'NOME'}));
+}
+
 // anonimizar
-$('btn-anon').onclick=()=>{
+$('btn-anon').onclick=async ()=>{
   $('anon-err').textContent='';
   const text=$('input').value;
   if(!text.trim()){$('anon-err').textContent='Cole um texto ou carregue um arquivo primeiro.';return;}
   const t0=performance.now();
-  const {tokenized,vault,findings}=tokenize(text);
+  let extraMatches=[];
+  if(nameModel && $('chk-names').checked){
+    $('btn-anon').disabled=true; $('btn-anon').textContent='detectando nomes…';
+    try{ extraMatches=await detectNames(text); }
+    catch(e){ $('anon-err').textContent='Erro na detecção de nomes: '+e.message; }
+    $('btn-anon').disabled=false; $('btn-anon').textContent='Anonimizar';
+  }
+  const {tokenized,vault,findings}=tokenize(text,{extraMatches});
   lastVault=vault;
   $('output').value=tokenized;
   // stats por tipo

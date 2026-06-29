@@ -8,7 +8,7 @@
 | Camada | O que é | Distribuição | Estado |
 |---|---|---|---|
 | **C1 — Motor regex BR** | `engine.js`: 15 tipos PII-BR + validação de dígito + tokenização reversível | **HTML único offline** (`dist/`), zero-dep | ✅ REAL + 44 testes |
-| **C2 — NER de nomes** | GLiNER (Apache-2.0) via ONNX/transformers.js — fecha o gap de NOMES/ENDEREÇO | pasta com modelo OU "modo pro" | 🟢 PROVADO LIVE no navegador — falta wiring no tool |
+| **C2 — NER de nomes** | GLiNER (Apache-2.0) via ONNX/transformers.js — fecha o gap de NOMES/ENDEREÇO | "modo-pro" file-input (corte Enio 2026-06-29) | ✅ DONE + PROVADO no produto (`anonimizador-offline-pro.html`) |
 
 ### C2 — prova live (jun/2026)
 - Modelo `model_quantized.onnx` (349MB, Apache-2.0) carrega em onnxruntime-node (1.4s) e no **navegador** (Chromium, ~12s).
@@ -17,9 +17,16 @@
   - "João da Silva Pereira" (person 0.33), "Rua das Flores, 123, Belo Horizonte" (location 0.38) — perdeu "Maria Santos".
   - "Ana Carolina de Souza" (0.45), "Dr. Carlos Eduardo Mendes Filho" (0.40) — ambos OK.
 - Honesto: scores 0.3–0.45, com misses/falsos ocasionais → threshold tunável + revisão humana de nomes (já no GUIA).
-- **Offline (parcial):** com rede BLOQUEADA no Chromium, as libs + **wasm (1.19.2) + modelo (349MB) carregam 100% local** (`route.abort` em tudo não-localhost → "NENHUMA requisição externa"). ✅ wasm+modelo+libs offline.
-- **Blocker do offline TOTAL:** `gliner@0.0.19` **bundla a própria cópia do transformers.js** → o `env.allowLocalModels` externo não alcança a instância dele; o **tokenizer (16MB) só carrega do HF CDN**, não de arquivo local. Os DADOS sensíveis nunca saem (inferência local), mas o tokenizer exige 1 download no setup.
-  - **Fixes possíveis (próxima sessão):** (a) gliner mais novo / transformers.js **v3** com GLiNER nativo + `localModelPath`; (b) patch correto do bundle do gliner; (c) aceitar download único do tokenizer no setup e cachear. NÃO é bloqueio fundamental — é maturidade de lib.
+- **✅ Offline TOTAL (2026-06-29) — PROVADO via net-log do Chromium headless (`--log-net-log`), zero requisição externa do app.** Tokenizer + modelo (349MB) + wasm (11MB) + libs TODOS de `localhost`. Verificado em `gliner-probe/browser-test-offline.html` + Node `test-tokenizer-local.mjs` (tokenizer local em 0.79s com `allowRemoteModels=false`).
+- **Blocker era MISDIAGNÓSTICO** (handoff dizia "gliner bundla transformers, precisa v3"). Verdade (lendo `gliner/dist/index.mjs:678`): gliner importa `@xenova/transformers` como **bare specifier** (importmap → instância compartilhada), mas o **construtor `Gliner` RESETA `env.allowLocalModels = config.transformersSettings?.allowLocalModels ?? false`**. Sem passar `transformersSettings`, o flag voltava a `false` → tokenizer caía no HF CDN.
+  - **FIX REAL (2 opções de config, SEM migrar p/ v3):**
+    1. `transformersSettings:{ allowLocalModels:true, useBrowserCache:false }` no construtor `Gliner` → tokenizer carrega de `env.localModelPath`.
+    2. `onnxSettings.wasmPaths` → dist local do `onnxruntime-web` (gliner usa a própria cópia de ort e puxa wasmPaths de `onnxSettings`; sem isso o `ort-wasm-simd-threaded.wasm/.mjs` vazava p/ jsdelivr CDN).
+  - Layout local exigido: `local-models/<repo>/<id>/{tokenizer.json,tokenizer_config.json,config.json,onnx/model_quantized.onnx}` + ort dist com `ort-wasm-simd-threaded.{mjs,wasm}`.
+- **✅ WIRING NO PRODUTO (2026-06-29, modo-pro — corte Enio):** `template.html` ganhou `<details>` "🔬 Modo avançado: detectar nomes" com directory-picker (`webkitdirectory`). `build.ts` agora emite **2 saídas**: `anonimizador-offline.html` (base C1, 2.63MB, leve) + `anonimizador-offline-pro.html` (C1+C2, 5.60MB, bundle GLiNER inline). O usuário aponta a pasta do modelo (~360MB, baixado 1×); arquivos lidos p/ memória → `customCache`(tokenizer) + `Uint8Array`(modelo) + blob URLs(wasm/mjs) → `Gliner` → spans com offsets → `engine.tokenize({extraMatches})`. Detecções de NOME/ENDEREÇO viram tokens reversíveis junto com a regex BR.
+  - **Prova de produto (Chromium headless, console + net-log):** bundle inline OK (`window.__glinerBundle`), modelo carrega de File objects ("modelo pronto — 100% local"), `OUTPUT="Vítima: [NOME_0002], CPF [CPF_0001]. Investigador: [NOME_0001], telefone ([TEL_0001])"` (2 NOME GLiNER + 1 CPF + 1 TEL regex), **zero requisição externa**. 44/44 testes do engine seguem passando.
+  - **Bundle:** gerado por `gliner-probe/bundle-spike/build-bundle.ts` (Bun.build, alias `@xenova/transformers`→web-dist p/ evitar `fs` undefined; 3.12MB, zero bare-import) → `vendor/gliner-bundle.mjs` (gitignored). ⚠️ **Reprodutibilidade:** `-pro` exige `vendor/gliner-bundle.mjs` presente; gerar a partir de `gliner-probe` (gitignored). Clone limpo builda só a base. Próximo passo de distribuição: empacotar o bundle de forma reprodutível OU versioná-lo.
+  - **Ordering fix:** o bundle é `<script type="module">` (deferido); o init de modo-pro no script clássico faz poll de `window.__glinerBundle` (40×30ms) antes de ativar a seção — senão a checagem rodava antes do módulo.
 - **Pendente p/ produção:** resolver tokenizer-local (acima), wiring opcional no HTML (modo-pro via file-input do modelo), decisão de formato de distribuição. Ambiente de prova: `gliner-probe/` (gitignored).
 
 Princípio: **C1 é determinística, rápida, à prova de falhas** (o que todo policial recebe). **C2 é opcional/avançada** (nome exige modelo, ~280MB — não cabe inline). Híbrido: C1 (regex) + C2 (nomes) → mesma `tokenize()` reversível.
