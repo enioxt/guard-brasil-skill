@@ -17,7 +17,10 @@
   - "João da Silva Pereira" (person 0.33), "Rua das Flores, 123, Belo Horizonte" (location 0.38) — perdeu "Maria Santos".
   - "Ana Carolina de Souza" (0.45), "Dr. Carlos Eduardo Mendes Filho" (0.40) — ambos OK.
 - Honesto: scores 0.3–0.45, com misses/falsos ocasionais → threshold tunável + revisão humana de nomes (já no GUIA).
-- **Pendente p/ produção:** wasm 100% local (no teste veio de CDN), modelo embutido/local (offline real), wiring opcional no HTML (modo-pro), decisão de formato de distribuição. Ambiente de prova: `gliner-probe/` (gitignored).
+- **Offline (parcial):** com rede BLOQUEADA no Chromium, as libs + **wasm (1.19.2) + modelo (349MB) carregam 100% local** (`route.abort` em tudo não-localhost → "NENHUMA requisição externa"). ✅ wasm+modelo+libs offline.
+- **Blocker do offline TOTAL:** `gliner@0.0.19` **bundla a própria cópia do transformers.js** → o `env.allowLocalModels` externo não alcança a instância dele; o **tokenizer (16MB) só carrega do HF CDN**, não de arquivo local. Os DADOS sensíveis nunca saem (inferência local), mas o tokenizer exige 1 download no setup.
+  - **Fixes possíveis (próxima sessão):** (a) gliner mais novo / transformers.js **v3** com GLiNER nativo + `localModelPath`; (b) patch correto do bundle do gliner; (c) aceitar download único do tokenizer no setup e cachear. NÃO é bloqueio fundamental — é maturidade de lib.
+- **Pendente p/ produção:** resolver tokenizer-local (acima), wiring opcional no HTML (modo-pro via file-input do modelo), decisão de formato de distribuição. Ambiente de prova: `gliner-probe/` (gitignored).
 
 Princípio: **C1 é determinística, rápida, à prova de falhas** (o que todo policial recebe). **C2 é opcional/avançada** (nome exige modelo, ~280MB — não cabe inline). Híbrido: C1 (regex) + C2 (nomes) → mesma `tokenize()` reversível.
 
