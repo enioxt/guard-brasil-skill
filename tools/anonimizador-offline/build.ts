@@ -90,22 +90,17 @@ const base = template
 
 mkdirSync(join(HERE, 'dist'), { recursive: true });
 
-// Build BASE (leve, só C1 regex). Marcador do bundle fica vazio → modo nomes oculto.
-const baseOut = base.replace('/*__GLINER_BUNDLE__*/', '');
-const basePath = join(HERE, 'dist', 'anonimizador-offline.html');
-writeFileSync(basePath, baseOut, 'utf8');
-console.log(`✓ base  ${basePath} — ${(baseOut.length / 1024 / 1024).toFixed(2)} MB (C1 regex, offline)`);
-
-// Build PRO (C1 + C2 nomes via GLiNER inline). Requer vendor/gliner-bundle.mjs
-// (gerar com: bun gliner-probe/bundle-spike/build-bundle.ts && cp out.mjs vendor/gliner-bundle.mjs).
+// Saída ÚNICA = a versão completa (regex sempre + nomes quando o usuário aponta a
+// pasta do modelo). Decisão Enio 2026-06-29: manter só o PRO (é superconjunto do básico).
+// O bundle GLiNER é inlinado; o modelo (~360MB) fica fora, carregado pelo usuário.
 const bundlePath = join(VENDOR, 'gliner-bundle.mjs');
-if (existsSync(bundlePath)) {
-  const bundle = readFileSync(bundlePath, 'utf8');
-  const proOut = base.replace('/*__GLINER_BUNDLE__*/', () => bundle);
-  const proPath = join(HERE, 'dist', 'anonimizador-offline-pro.html');
-  writeFileSync(proPath, proOut, 'utf8');
-  console.log(`✓ pro   ${proPath} — ${(proOut.length / 1024 / 1024).toFixed(2)} MB (C1+C2 nomes; modelo via pasta local)`);
-} else {
-  console.log(`↳ pro pulado: vendor/gliner-bundle.mjs ausente (build base ok).`);
-  console.log(`  Para gerar o -pro: cd c2-bundle && bun install && bun build.ts`);
+if (!existsSync(bundlePath)) {
+  console.error(`✗ vendor/gliner-bundle.mjs ausente — necessário p/ a build completa.`);
+  console.error(`  Gere a receita: cd c2-bundle && bun install && bun build.ts`);
+  process.exit(1);
 }
+const bundle = readFileSync(bundlePath, 'utf8');
+const out = base.replace('/*__GLINER_BUNDLE__*/', () => bundle);
+const outPath = join(HERE, 'dist', 'anonimizador-offline.html');
+writeFileSync(outPath, out, 'utf8');
+console.log(`✓ ${outPath} — ${(out.length / 1024 / 1024).toFixed(2)} MB (arquivo único: regex + nomes; modelo via pasta local)`);

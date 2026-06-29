@@ -31,24 +31,24 @@ Detecções viram `extraMatches` na mesma `tokenize()` reversível. Labels EN + 
 
 ## Build
 
-```bash
-# básica (C1) — leve, sempre funciona em clone limpo
-bun packages/guard-brasil/tools/anonimizador-offline/build.ts
-# → dist/anonimizador-offline.html       (~2.6 MB, arquivo único)
-# → dist/anonimizador-offline-pro.html   (~5.6 MB) — só se vendor/gliner-bundle.mjs existir
+Saída **única** (decisão 2026-06-29 — só a versão completa; é superconjunto da básica).
+O `.html` faz regex na hora; nomes/endereços ligam quando o usuário aponta a pasta do modelo.
 
-# -pro (C1+C2 nomes) — gera o bundle GLiNER + a pasta do modelo
+```bash
+# 1. gerar o bundle GLiNER + a pasta do modelo (receita reprodutível, tracked)
 cd packages/guard-brasil/tools/anonimizador-offline/c2-bundle
 bun install
-bun build.ts          # → ../vendor/gliner-bundle.mjs (3 MB, inlinado no -pro)
+bun build.ts          # → ../vendor/gliner-bundle.mjs (3 MB, inlinado no HTML)
 bun prepare-model.ts  # → ../dist/modelo-nomes/ (360 MB: tokenizer+modelo+wasm+LICENCAS)
+
+# 2. montar o arquivo único
+cd ..
+bun build.ts          # → dist/anonimizador-offline.html (~5.6 MB)
 ```
 
 `vendor/`, `dist/`, `gliner-probe/`, `c2-bundle/node_modules/` são gitignored (regeneráveis).
-A receita reprodutível vive em `c2-bundle/` (tracked) — clone limpo builda a básica direto;
-o `-pro` precisa rodar a receita acima. Distribuição:
-- **básica:** 1 `.html` por e-mail/pendrive.
-- **-pro:** `anonimizador-offline-pro.html` + a pasta `modelo-nomes/` (o usuário aponta a pasta no "modo avançado").
+A doc humana ("Como funciona / Segurança") vive **dentro do HTML, como aba** — não há `.md`/`.html` de guia separado.
+Distribuição: `anonimizador-offline.html` + a pasta `modelo-nomes/` (o usuário aponta a pasta no "modo avançado").
 
 ## Prova (FLOW VALIDATION)
 

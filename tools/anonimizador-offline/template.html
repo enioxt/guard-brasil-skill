@@ -80,6 +80,7 @@
   <div class="tabs">
     <div class="tab active" data-view="anon">① Anonimizar</div>
     <div class="tab" data-view="restore">② Restaurar resposta</div>
+    <div class="tab" data-view="sobre">ℹ️ Como funciona / Segurança</div>
   </div>
 
   <!-- ── ANONIMIZAR ──────────────────────────────────────────── -->
@@ -156,6 +157,101 @@
           <button class="ghost" id="btn-copy-restore">Copiar</button>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ── SOBRE / COMO FUNCIONA / SEGURANÇA ───────────────────── -->
+  <section class="view" id="view-sobre">
+    <div class="card">
+      <h2>O que é esta ferramenta</h2>
+      <p>Um <b>anonimizador de dados pessoais</b> que roda <b>100% no seu computador</b>, dentro do navegador,
+      <b>sem internet</b>. Serve para o fluxo de quem usa IA pública (ChatGPT, Claude, Gemini) com documentos
+      sensíveis: você troca os dados pessoais por códigos antes de enviar à IA, e depois restaura a resposta
+      localmente. O dado real <b>nunca sai da máquina</b>.</p>
+    </div>
+
+    <div class="card">
+      <h2>Como funciona — o fluxo</h2>
+      <p><b>1. Anonimizar</b> → cole o texto (ou solte um <code>.txt</code>/<code>.docx</code>/<code>.pdf</code>).
+      Cada dado pessoal vira um código reversível, ex.: <code>[CPF_0001]</code>, <code>[NOME_0001]</code>.</p>
+      <p><b>2. Usar na IA</b> → copie o texto com os códigos e cole no ChatGPT/Claude. A IA só vê os códigos,
+      nunca o dado real.</p>
+      <p><b>3. Restaurar</b> → na aba "Restaurar", cole a resposta da IA + carregue o <b>mapa</b>
+      (<code>.json</code> que fica só no seu PC). Os códigos voltam a ser os dados reais.</p>
+      <div class="lgpd" style="margin-top:12px">⚠️ <b>Nunca</b> envie o arquivo original (PDF/DOCX) para a IA — ela leria tudo.
+      Extraia o texto aqui, anonimize, e cole <b>só o texto anonimizado</b>.</div>
+    </div>
+
+    <div class="card">
+      <h2>O que ele detecta</h2>
+      <table>
+        <tr><th>Camada</th><th>Tipos</th><th>Como</th></tr>
+        <tr><td><b>Padrões fixos</b><br><span style="color:var(--mut);font-size:12px">sempre ativo</span></td>
+          <td>CPF, CNPJ, RG, CNH, PIS/NIS, Cartão SUS, Título de Eleitor, processo judicial (CNJ),
+          MASP, REDS, placa (antiga + Mercosul), telefone, e-mail, CEP</td>
+          <td>regras de texto (regex) + <b>validação de dígito</b> (rejeita número inválido)</td></tr>
+        <tr><td><b>Nomes e endereços</b><br><span class="tag">modo avançado</span></td>
+          <td>nomes de pessoas, endereços, locais, organizações</td>
+          <td>modelo de IA local (GLiNER) — quando você carrega a pasta do modelo</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>As técnicas usadas</h2>
+      <ul>
+        <li><b>Regex brasileira + validação de dígito.</b> Cada documento (CPF, CNPJ, CNH, PIS, Cartão SUS,
+        Título) é conferido pelo <b>algoritmo oficial de dígito verificador</b> — assim um número que "parece"
+        CPF mas é inválido não é marcado por engano (menos falso-positivo).</li>
+        <li><b>Tokenização reversível.</b> Cada dado vira um código numerado (<code>[CPF_0001]</code>); o mesmo
+        valor recebe sempre o mesmo código. O "mapa" (JSON local) guarda a correspondência para restaurar depois.
+        Nada é apagado — é <b>reversível</b>.</li>
+        <li><b>NER (reconhecimento de entidades) com IA.</b> Para nomes próprios — que não seguem um padrão fixo —
+        usa-se o modelo <b>GLiNER</b>, treinado para achar pessoas/endereços em texto livre. Roda na sua máquina.</li>
+        <li><b>Viés de segurança.</b> No modo nomes, a ferramenta é ajustada para <b>marcar a mais do que deixar
+        passar</b> (limiar baixo): num documento sensível, é melhor proteger um nome extra do que vazar um.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>As tecnologias</h2>
+      <ul>
+        <li><b>Navegador, sem servidor.</b> Tudo é um único arquivo <code>.html</code> com JavaScript — abre no
+        Edge/Chrome com duplo-clique. Não há back-end, não há nuvem.</li>
+        <li><b>Leitura de arquivos local:</b> <code>mammoth.js</code> (.docx) e <code>pdf.js</code> (.pdf),
+        embutidos no próprio arquivo.</li>
+        <li><b>IA local:</b> <code>transformers.js</code> + <code>onnxruntime-web</code> (WebAssembly) executam o
+        modelo <b>GLiNER</b> (<code>gliner_multi_pii-v1</code>) direto no navegador, sem chamar nenhum servidor.</li>
+        <li><b>Licenças livres:</b> GLiNER e transformers.js são <b>Apache-2.0</b>; onnxruntime é <b>MIT</b> —
+        podem ser distribuídos e auditados.</li>
+      </ul>
+    </div>
+
+    <div class="card" style="border-color:var(--ok)">
+      <h2 style="color:var(--ok)">🔒 Segurança — o ponto central</h2>
+      <ul>
+        <li><b>Nenhum dado sai do computador.</b> Foi verificado com o registro de rede do navegador
+        (<i>net-log</i>): ao anonimizar — inclusive com o modelo de nomes — <b>zero requisições externas</b>.
+        Tudo (texto, modelo de 349&nbsp;MB, motor de IA) carrega de arquivos locais.</li>
+        <li><b>Dado soberano protegido.</b> Pensado para contexto investigativo: o dado real nunca é enviado a
+        terceiros, nunca é versionado, nunca vai à nuvem.</li>
+        <li><b>Reversível e sob seu controle.</b> O "mapa" com os dados reais é um arquivo que fica só no seu PC —
+        guarde-o em local seguro e apague quando não precisar mais.</li>
+        <li><b>Auditável.</b> Código aberto — qualquer técnico pode abrir o arquivo e confirmar que nada é enviado.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Limites honestos (leia antes de confiar)</h2>
+      <ul>
+        <li><b>Nomes não são perfeitos.</b> O modelo de IA acerta bem, mas pode deixar passar um nome raro ou
+        marcar uma palavra a mais. <b>Sempre revise o texto anonimizado antes de enviar à IA.</b></li>
+        <li><b>PDF escaneado</b> (imagem, sem texto) não tem o que extrair — precisaria de OCR, fora do escopo.</li>
+        <li><b>Sem registro de auditoria</b> persistente ainda (a LGPD Art. 46 e o CNJ pedem log de "quem fez o quê").</li>
+        <li><b>Não substitui base legal</b>, autorização judicial ou dever de sigilo — resolve só a parte técnica.</li>
+      </ul>
+      <p style="color:var(--mut);font-size:13px;margin-top:14px">Base legal de apoio: minimização de dados
+      (LGPD, Lei 13.709/2018); CNJ Resolução 615/2025 (anonimização na origem); MJSP Portaria 961/2025
+      (IA em investigação). Contexto: junho/2026.</p>
     </div>
   </section>
 </main>
