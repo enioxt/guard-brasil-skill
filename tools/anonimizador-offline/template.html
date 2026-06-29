@@ -247,9 +247,14 @@ async function loadFile(file){
    Gliner → spans com offsets → engine.tokenize({extraMatches}).
    =================================================================== */
 let nameModel=null; // Gliner pronto, ou null
-const NAME_LABELS=['person','full name','organization','address','location'];
-const NAME_KEY={person:'NOME','full name':'NOME',organization:'ORG',address:'ENDERECO',location:'LOCAL'};
-const NAME_THRESHOLD=0.3;
+// Labels em INGLÊS — GLiNER-multi responde mal a labels PT (provado: tune-names.html,
+// PT recall 6/9→0/9 vs EN 9/9). thr=0.2 é viés-recall (correto p/ ferramenta de PII:
+// um MISS = nome vaza p/ a IA; over-redação é segura + humano revisa). Provado:
+// "Dr. Carlos Eduardo Mendes Filho" pontua 0.24 (pego em 0.2, perdido em 0.25);
+// texto forense benigno = ZERO falso-positivo em 0.2.
+const NAME_LABELS=['person','full name','first name','organization','address','location'];
+const NAME_KEY={person:'NOME','full name':'NOME','first name':'NOME',organization:'ORG',address:'ENDERECO',location:'LOCAL'};
+const NAME_THRESHOLD=0.2;
 
 // O bundle GLiNER é um <script type="module"> (deferido) → roda DEPOIS deste
 // script clássico. Espera ele aparecer (inline, fica pronto em ~ms) antes de ativar.

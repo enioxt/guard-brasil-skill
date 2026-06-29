@@ -88,7 +88,9 @@ export const PATTERNS = [
   { id: 'email', label: 'E-mail', key: 'EMAIL',
     regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g },
   { id: 'telefone', label: 'Telefone', key: 'TEL',
-    regex: /\b(?:\+55\s?)?(?:\(?\d{2}\)?\s?)\d{4,5}[-.\s]?\d{4}\b/g },
+    // (?<!\d) em vez de \b: o \b empurrava o início pra depois do '(' em "(34) 9..."
+    // deixando o parêntese solto. Lookbehind permite capturar o '(' e o +55.
+    regex: /(?<!\d)(?:\+55\s?)?\(?\d{2}\)?\s?\d{4,5}[-.\s]?\d{4}(?!\d)/g },
   { id: 'masp', label: 'MASP', key: 'MASP',
     regex: /\b(?:MASP|masp|Masp)[:\s]*\d{1,3}[.\s]?\d{3,5}[.\s-]?\d{0,2}\b/gi },
   { id: 'reds', label: 'REDS', key: 'REDS',
