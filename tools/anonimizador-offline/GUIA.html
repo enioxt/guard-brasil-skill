@@ -109,7 +109,8 @@ Resposta:    "O suspeito [CPF_0001] é dono da [PLACA_0001]."
 ↓ restaurar (com o mapa, no seu PC)
 
 Final:       "O suspeito 529.982.247-25 é dono da ABC1D23."</div>
-  <p style="color:var(--mut);font-size:14px">Obs.: nomes próprios (João da Silva) ainda dependem de revisão humana — veja "Limites" abaixo.</p>
+  <p style="color:var(--mut);font-size:14px">Obs.: na versão básica, o nome (João da Silva) fica como <code>[NOME?]</code> para você revisar à mão.
+  Na versão <b>-pro</b> (modo avançado), o nome também vira <code>[NOME_0001]</code> automaticamente — veja a seção "Modo avançado" abaixo.</p>
 
   <h2>O que a ferramenta detecta</h2>
   <table>
@@ -124,12 +125,38 @@ Final:       "O suspeito 529.982.247-25 é dono da ABC1D23."</div>
     <tr><td>Telefone</td><td><code>[TEL_0001]</code></td><td>—</td></tr>
     <tr><td>E-mail</td><td><code>[EMAIL_0001]</code></td><td>—</td></tr>
     <tr><td>CEP</td><td><code>[CEP_0001]</code></td><td>—</td></tr>
+    <tr><td>Nome de pessoa <span class="tag">modo avançado</span></td><td><code>[NOME_0001]</code></td><td>só na versão <b>-pro</b> (modelo de IA local)</td></tr>
+    <tr><td>Endereço / local <span class="tag">modo avançado</span></td><td><code>[ENDERECO_0001]</code></td><td>só na versão <b>-pro</b></td></tr>
   </table>
+
+  <h2>Modo avançado — detectar nomes de pessoas</h2>
+  <p>As regras fixas acima não pegam <b>nomes próprios</b> (cada nome é diferente). Para isso existe a
+  versão <code>anonimizador-offline-<b>pro</b>.html</code>, que usa um <b>modelo de IA que roda 100% no seu
+  computador</b> — nada vai para a internet, igual ao resto da ferramenta.</p>
+
+  <div class="card">
+    <h3 style="margin-top:0">Como ligar (uma vez)</h3>
+    <div class="flow">
+      <div class="step"><div class="num">1</div><div>Abra <code>anonimizador-offline-pro.html</code> e, na aba Anonimizar, clique em
+        <b>"🔬 Modo avançado: detectar nomes"</b>.</div></div>
+      <div class="step"><div class="num">2</div><div>Clique em <b>"Escolha a pasta do modelo"</b> e aponte a pasta <code>modelo-nomes</code>
+        (que vem junto, ~360&nbsp;MB — copie do pendrive para o computador uma vez).
+        <div class="sub">O carregamento leva alguns segundos. Aparece "✓ modelo pronto — roda 100% local".</div></div></div>
+      <div class="step"><div class="num">3</div><div>Pronto. Daí em diante, ao clicar <b>Anonimizar</b>, os nomes e endereços também
+        viram códigos (<code>[NOME_0001]</code>, <code>[ENDERECO_0001]</code>), junto com CPF, RG etc.</div></div>
+    </div>
+  </div>
+
+  <div class="warn">
+    <b>Revise os nomes.</b> O modelo é bom, mas <b>não é perfeito</b> — pode deixar passar um nome raro ou
+    grifar uma palavra a mais. Por segurança a ferramenta é ajustada para <b>grifar demais a errar de menos</b>
+    (é melhor proteger um nome a mais do que vazar um). <b>Sempre leia o texto anonimizado antes de enviar à IA.</b>
+  </div>
 
   <h2>Limites honestos (leia antes de confiar)</h2>
   <div class="warn">
     <ul style="margin:0">
-      <li><b>Nomes de pessoas</b> não são detectados por padrão (exigem um modelo de IA local, não só regra fixa). Revise o texto antes de enviar.</li>
+      <li><b>Nomes de pessoas:</b> na versão básica não são detectados (só regras fixas). Use a versão <b>-pro</b> (modo avançado) para detectá-los — e ainda assim <b>revise</b>, pois o modelo não é perfeito.</li>
       <li><b>PDF escaneado</b> (imagem, sem texto) não tem o que extrair — precisaria de OCR. Não está no escopo desta versão.</li>
       <li><b>Não há registro de auditoria</b> persistente ainda. Para uso oficial, a LGPD (Art. 46) e o CNJ pedem log de "quem fez o quê, quando".</li>
       <li><b>Esta ferramenta resolve a parte técnica.</b> Não substitui base legal, autorização judicial ou dever de sigilo para acessar dado sensível.</li>
@@ -147,10 +174,16 @@ Final:       "O suspeito 529.982.247-25 é dono da ABC1D23."</div>
   </div>
 
   <h2>Como usar no dia a dia</h2>
+  <p><b>Duas versões</b>, escolha conforme a necessidade:</p>
+  <table>
+    <tr><th>Arquivo</th><th>Detecta</th><th>Tamanho</th></tr>
+    <tr><td><code>anonimizador-offline.html</code> <span class="tag">básica</span></td><td>CPF, RG, telefone, e-mail… (regras fixas)</td><td>leve (~2,6&nbsp;MB) — só o .html</td></tr>
+    <tr><td><code>anonimizador-offline-pro.html</code> <span class="tag">+ nomes</span></td><td>tudo da básica <b>+ nomes e endereços</b></td><td>.html (~5,6&nbsp;MB) + pasta <code>modelo-nomes</code> (~360&nbsp;MB)</td></tr>
+  </table>
   <ol>
-    <li>Receba o arquivo <code>anonimizador-offline.html</code> (por e-mail ou pendrive).</li>
-    <li>Dê dois cliques — abre no navegador. Não precisa de internet nem de permissão de administrador.</li>
-    <li>Siga as 4 etapas do fluxo acima.</li>
+    <li>Receba o(s) arquivo(s) por pendrive (a versão -pro vem com a pasta <code>modelo-nomes</code>).</li>
+    <li>Dê dois cliques no <code>.html</code> — abre no navegador. Não precisa de internet nem de administrador.</li>
+    <li>Na versão -pro, ligue o "modo avançado" e aponte a pasta do modelo (uma vez). Depois siga o fluxo normal.</li>
     <li>Para sigilo: guarde os arquivos <code>mapa-*.json</code> em pasta protegida e apague quando não precisar mais.</li>
   </ol>
 
